@@ -10,6 +10,7 @@ import { DefaultPalette } from '@fluentui/react/lib/Styling';
 import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
 
 import axios from 'axios';
+import { useState } from 'react';
 
 // Styles definition
 const stackStyles: IStackStyles = {
@@ -23,37 +24,12 @@ const verticalGapStackTokens: IStackTokens = {
   padding: 10,
 };
   
-function _alertClicked(): void {
-	transactions.push({
-		"id": "f86c9137-0136-490f-851b-83dfaf59dff5",
-		"from": "from",
-		"to": "to",
-		"amount": 10,
-		"message": "thank you",
-		"time": "2023-08-04T10:46:32.974Z"
-	});
+function _onClickSend(): void {
+	console.log(`Send button pressed`);
 }
 
-let transactions: any = [{
-	"id": "f86c9137-0136-490f-851b-83dfaf59dff5",
-	"from": "from",
-	"to": "to",
-	"amount": 10,
-	"message": "thank you",
-	"time": "2023-08-04T10:46:32.974Z"
-}];
-
-// transactions = [];
-// for (let i = 0; i < 200; i++) {
-// 	transactions.push({
-// 	key: i,
-// 	name: 'Item ' + i,
-// 	value: i,
-//   });
-// }
-
 const App = (props: AppProps) => {
-	const balance = useId('balance');
+	const [transactions, updateTransactions] = useState([]);
 	//const xDollarLabelId = useId("xDollarLabelId");
 	//const amountId = useId("amountId");
 
@@ -74,9 +50,7 @@ const App = (props: AppProps) => {
 	axios
 	.get(`http://localhost:3000/transactions?id=client`)
 	.then((res) => {
-	res.data.foreach((t: any) => {
-		transactions.push(t);
-	});
+		updateTransactions(res.data);
 	})
 	.catch((e) => {});
 
@@ -85,8 +59,8 @@ const App = (props: AppProps) => {
 		<Stack enableScopedSelectors styles={stackStyles} tokens={verticalGapStackTokens}>
 			<h1 style={{ fontSize:'24px', lineHeight:'24px', margin: 0, padding: 0, color: NeutralColors.gray120 }}>..xlc</h1>
 			<Stack horizontalAlign='end'>
-				<Text size={900} id={balance}><small>x$</small>0.1692</Text>
-				<PrimaryButton text="Send" onClick={_alertClicked} />
+				<Text size={900}><small>x$</small>0.1692</Text>
+				<PrimaryButton text="Send" onClick={_onClickSend} />
 			</Stack>
 			<Stack>
 				<DetailsList
