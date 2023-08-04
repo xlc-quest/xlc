@@ -42,6 +42,8 @@ setInterval(() => {
   let transactionsPromises: Promise<void>[] = [];
 
   models.connections.forEach(async (c) => {
+    if (!c.url) return;
+
     console.log(
       `Getting connections from server with address... ${c.id}(${c.url})`
     );
