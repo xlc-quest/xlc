@@ -1,4 +1,6 @@
 import * as React from 'react';
+import { useBoolean } from '@fluentui/react-hooks';
+
 import { useId, Text } from "@fluentui/react-components";
 import { Stack, Label, TextField, Alignment, IStackStyles, IStackTokens, IStackItemStyles, StackItem } from '@fluentui/react';
 import { DetailsList, DetailsListLayoutMode, Selection, IColumn } from '@fluentui/react/lib/DetailsList';
@@ -22,8 +24,33 @@ const verticalGapStackTokens: IStackTokens = {
 };
   
 function _alertClicked(): void {
-	alert('Clicked');
+	transactions.push({
+		"id": "f86c9137-0136-490f-851b-83dfaf59dff5",
+		"from": "from",
+		"to": "to",
+		"amount": 10,
+		"message": "thank you",
+		"time": "2023-08-04T10:46:32.974Z"
+	});
 }
+
+let transactions: any = [{
+	"id": "f86c9137-0136-490f-851b-83dfaf59dff5",
+	"from": "from",
+	"to": "to",
+	"amount": 10,
+	"message": "thank you",
+	"time": "2023-08-04T10:46:32.974Z"
+}];
+
+// transactions = [];
+// for (let i = 0; i < 200; i++) {
+// 	transactions.push({
+// 	key: i,
+// 	name: 'Item ' + i,
+// 	value: i,
+//   });
+// }
 
 const App = (props: AppProps) => {
 	const balance = useId('balance');
@@ -32,19 +59,24 @@ const App = (props: AppProps) => {
 
 	const columns = [
 		{ key: 'id', name: 'transaction#', fieldName: 'id', minWidth: 100, maxWidth: 200, isResizable: true },
-		{ key: 'date', name: 'date', fieldName: 'date', minWidth: 100, maxWidth: 200, isResizable: true },
+		{ key: 'time', name: 'time', fieldName: 'time', minWidth: 100, maxWidth: 200, isResizable: true },
 		{ key: 'from', name: 'from', fieldName: 'from', minWidth: 100, maxWidth: 200, isResizable: true },
 		{ key: 'to', name: 'to', fieldName: 'to', minWidth: 100, maxWidth: 200, isResizable: true },
 		{ key: 'amount', name: 'amount', fieldName: 'amount', minWidth: 100, maxWidth: 200, isResizable: true },
 		{ key: 'message', name: 'message', fieldName: 'message', minWidth: 100, maxWidth: 200, isResizable: true },
 	];
 
-	let transactions: any = [];
+	// const columns = [
+	// 	{ key: 'column1', name: 'Name', fieldName: 'name', minWidth: 100, maxWidth: 200, isResizable: true },
+	// 	{ key: 'column2', name: 'Value', fieldName: 'value', minWidth: 100, maxWidth: 200, isResizable: true },
+	// ];
 
 	axios
 	.get(`http://localhost:3000/transactions?id=client`)
 	.then((res) => {
-	  transactions = res.data;
+	res.data.foreach((t: any) => {
+		transactions.push(t);
+	});
 	})
 	.catch((e) => {});
 
@@ -60,9 +92,7 @@ const App = (props: AppProps) => {
 				<DetailsList
 						items={transactions}
 						columns={columns}
-						setKey="set"
 						layoutMode={DetailsListLayoutMode.justified}
-						selectionPreservedOnEmptyClick={true}
 						ariaLabelForSelectionColumn="Toggle selection"
 						ariaLabelForSelectAllCheckbox="Toggle selection for all items"
 						checkButtonAriaLabel="select row"
