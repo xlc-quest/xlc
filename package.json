@@ -1,13 +1,13 @@
 {
-  "name": "barebones-react-typescript-express",
+  "name": "xlc",
   "version": "1.0.0",
-  "description": "",
-  "main": "dist/server.js",
+  "description": "Cross Ledger Connections & Currency - XLC.",
+  "main": "dist/app.js",
   "scripts": {
     "watch:build": "webpack -w",
-    "watch:server": "nodemon dist/server.js",
+    "watch:server": "nodemon dist/app.js",
     "dev": "npm-run-all --parallel watch:*",
-    "start": "node dist/server.js",
+    "start": "node dist/app.js",
     "postinstall": "webpack"
   },
   "keywords": [],

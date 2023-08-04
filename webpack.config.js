@@ -3,7 +3,7 @@ const nodeExternals = require('webpack-node-externals');
 
 const serverConfig = {
 	mode: process.env.NODE_ENV || 'development',
-	entry: './src/server/server.ts',
+	entry: './src/server/app.ts',
 	module: {
 		rules: [
 			{
@@ -20,7 +20,7 @@ const serverConfig = {
 		extensions: ['.ts', '.js']
 	},
 	output: {
-		filename: 'server.js',
+		filename: 'app.js',
 		path: path.resolve(__dirname, 'dist')
 	},
 	target: 'node',
