@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useBoolean, useSetInterval } from '@fluentui/react-hooks';
 
 import { useId, Text } from "@fluentui/react-components";
-import { Stack, Label, TextField, Alignment, IStackStyles, IStackTokens, IStackItemStyles, StackItem } from '@fluentui/react';
+import { Stack, Label, TextField, Alignment, IStackStyles, IStackTokens, IStackItemStyles, StackItem, updateT } from '@fluentui/react';
 import { DetailsList, DetailsListLayoutMode, Selection, IColumn } from '@fluentui/react/lib/DetailsList';
 import { MarqueeSelection } from '@fluentui/react/lib/MarqueeSelection';
 import { NeutralColors } from '@fluentui/theme';
@@ -23,35 +23,13 @@ const verticalGapStackTokens: IStackTokens = {
   childrenGap: 10,
   padding: 10,
 };
-  
-function _onClickSend(): void {
-	console.log(`Send button pressed`);
-}
 
+//const TransactionsContext = React.createContext([]);
+
+//const transactions = [];
 const App = (props: AppProps) => {
-	const [transactions, updateTransactions] = useState([]);
-	//const xDollarLabelId = useId("xDollarLabelId");
-	//const amountId = useId("amountId");
-
-	// useEffect(() => {
-	// 	axios
-	// 	.get(`http://localhost:3000/transactions?id=client`)
-	// 	.then((res) => {
-	// 		updateTransactions(res.data);
-	// 	})
-	// 	.catch((e) => {});
-	// });
-	const {setInterval, clearInterval} = useSetInterval();
-
-	// const transactionsInterval = setInterval(() => {
-	// 	axios
-	// 	.get(`http://localhost:3000/transactions?id=client`)
-	// 	.then((res) => {
-	// 		updateTransactions(res.data);
-	// 		console.log(transactions);
-	// 	})
-	// 	.catch((e) => {});
-	// }, 3000);
+	const [transactions, updateTransactions] = useState<any[]>([]);
+	//const transactions = React.useContext(TransactionsContext);
 
 	const columns = [
 		{ key: 'id', name: 'transaction#', fieldName: 'id', minWidth: 100, maxWidth: 200, isResizable: true },
@@ -62,21 +40,53 @@ const App = (props: AppProps) => {
 		{ key: 'message', name: 'message', fieldName: 'message', minWidth: 100, maxWidth: 200, isResizable: true },
 	];
 
+	const _refreshTransactionsAsync = () => {
+		axios
+		.get(`http://localhost:3000/transactions?id=client`)
+		.then((res) => {
+			if (res.data.length <= 0) return;
+			updateTransactions( (prevList) => [...res.data]);
+		})
+	}
+
+	const _onClickSend = () => {
+		console.log(`Send button pressed`);
+		axios
+		.post(`http://localhost:3000/transactions?id=client`, {
+			from: "from",
+			to: "to",
+			amount: 100.00
+		})
+		.then((res) => {
+			_refreshTransactionsAsync();
+		})
+	}
+
+	const _onClickRefresh = () => {
+		console.log(`Refresh button pressed`);
+		_refreshTransactionsAsync();
+	}
+
 	useEffect(() => {
+		_refreshTransactionsAsync();
+	}, []);
 
-	});
-
-	// const columns = [
-	// 	{ key: 'column1', name: 'Name', fieldName: 'name', minWidth: 100, maxWidth: 200, isResizable: true },
-	// 	{ key: 'column2', name: 'Value', fieldName: 'value', minWidth: 100, maxWidth: 200, isResizable: true },
-	// ];
+	// axios
+	// .get(`http://localhost:3000/transactions?id=client`)
+	// .then((res) => {
+	// 	if (res.data.length <= 0) return;
+	// 	updateTransactions( (prevList) => [...res.data]);
+	// })
 
 	return (
 	<div style={{ textAlign: 'end' }}>
 		<Stack enableScopedSelectors styles={stackStyles} tokens={verticalGapStackTokens}>
 			<h1 style={{ fontSize:'24px', lineHeight:'24px', margin: 0, padding: 0, color: NeutralColors.gray120 }}>..xlc</h1>
-			<Stack horizontalAlign='end'>
+			<Stack horizontal horizontalAlign='end'>
 				<Text size={900}><small>x$</small>0.1692</Text>
+			</Stack>
+			<Stack horizontal horizontalAlign='end'>
+				<DefaultButton text="Refresh" onClick={_onClickRefresh} />
 				<PrimaryButton text="Send" onClick={_onClickSend} />
 			</Stack>
 			<Stack>
