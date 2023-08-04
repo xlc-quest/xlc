@@ -6,7 +6,7 @@ import * as crypto from 'crypto';
 const router = express.Router();
 
 router.get('/api/hello', (req, res, next) => {
-    res.json('World');
+    res.json('..xlc');
 });
 
 router.get('/connections', (req, res) => {
