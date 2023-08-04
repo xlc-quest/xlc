@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useBoolean } from '@fluentui/react-hooks';
+import { useBoolean, useSetInterval } from '@fluentui/react-hooks';
 
 import { useId, Text } from "@fluentui/react-components";
 import { Stack, Label, TextField, Alignment, IStackStyles, IStackTokens, IStackItemStyles, StackItem } from '@fluentui/react';
@@ -10,7 +10,7 @@ import { DefaultPalette } from '@fluentui/react/lib/Styling';
 import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
 
 import axios from 'axios';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // Styles definition
 const stackStyles: IStackStyles = {
@@ -33,6 +33,26 @@ const App = (props: AppProps) => {
 	//const xDollarLabelId = useId("xDollarLabelId");
 	//const amountId = useId("amountId");
 
+	// useEffect(() => {
+	// 	axios
+	// 	.get(`http://localhost:3000/transactions?id=client`)
+	// 	.then((res) => {
+	// 		updateTransactions(res.data);
+	// 	})
+	// 	.catch((e) => {});
+	// });
+	const {setInterval, clearInterval} = useSetInterval();
+
+	// const transactionsInterval = setInterval(() => {
+	// 	axios
+	// 	.get(`http://localhost:3000/transactions?id=client`)
+	// 	.then((res) => {
+	// 		updateTransactions(res.data);
+	// 		console.log(transactions);
+	// 	})
+	// 	.catch((e) => {});
+	// }, 3000);
+
 	const columns = [
 		{ key: 'id', name: 'transaction#', fieldName: 'id', minWidth: 100, maxWidth: 200, isResizable: true },
 		{ key: 'time', name: 'time', fieldName: 'time', minWidth: 100, maxWidth: 200, isResizable: true },
@@ -42,17 +62,14 @@ const App = (props: AppProps) => {
 		{ key: 'message', name: 'message', fieldName: 'message', minWidth: 100, maxWidth: 200, isResizable: true },
 	];
 
+	useEffect(() => {
+
+	});
+
 	// const columns = [
 	// 	{ key: 'column1', name: 'Name', fieldName: 'name', minWidth: 100, maxWidth: 200, isResizable: true },
 	// 	{ key: 'column2', name: 'Value', fieldName: 'value', minWidth: 100, maxWidth: 200, isResizable: true },
 	// ];
-
-	axios
-	.get(`http://localhost:3000/transactions?id=client`)
-	.then((res) => {
-		updateTransactions(res.data);
-	})
-	.catch((e) => {});
 
 	return (
 	<div style={{ textAlign: 'end' }}>
