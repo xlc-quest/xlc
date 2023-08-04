@@ -1,0 +1,8 @@
+{
+    "appService.zipIgnorePattern": [
+        "node_modules{,/**}",
+        ".vscode{,/**}"
+    ],
+    "appService.defaultWebAppToDeploy": "/subscriptions/0206c26e-3e06-400f-9e0e-ec9e287ee7ff/resourceGroups/UsageTest2/providers/Microsoft.Web/sites/xlc-quest",
+    "appService.deploySubpath": "."
+}
