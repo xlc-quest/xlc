@@ -12,6 +12,7 @@ import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
 import axios from 'axios';
 import { useState, useEffect } from 'react';
 import { SendCalloutBtn } from './SendCalloutBtn';
+import { configs } from '../configs';
 
 // Styles definition
 const stackStyles: IStackStyles = {
@@ -43,7 +44,7 @@ const App = (props: AppProps) => {
 
 	const refreshTransactionsAsync = () => {
 		axios
-		.get(`http://localhost:3000/transactions?id=client`)
+		.get(`${configs.url}/transactions?id=client`)
 		.then((res) => {
 			if (res.data.length <= 0) return;
 			updateTransactions( (prevList) => {

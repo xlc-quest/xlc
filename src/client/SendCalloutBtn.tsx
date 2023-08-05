@@ -15,6 +15,7 @@ import { useBoolean, useId } from '@fluentui/react-hooks';
 import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
 import axios from 'axios';
 import { FormEvent } from 'react';
+import { configs } from '../configs';
 
 export const SendCalloutBtn = (props: { refreshTransactionsAsync: Function }) => {
   const [isCalloutVisible, { toggle: toggleIsCalloutVisible }] = useBoolean(false);
@@ -37,7 +38,7 @@ export const SendCalloutBtn = (props: { refreshTransactionsAsync: Function }) =>
     //console.log(t);
 
     axios
-		.post(`http://localhost:3000/transactions?id=client`, transaction)
+		.post(`${configs.url}/transactions?id=client`, transaction)
 		.then((res) => {
       props.refreshTransactionsAsync();
 		});
