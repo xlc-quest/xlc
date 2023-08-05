@@ -11,6 +11,7 @@ import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
 
 import axios from 'axios';
 import { useState, useEffect } from 'react';
+import { SendCalloutBtn } from './SendCalloutBtn';
 
 // Styles definition
 const stackStyles: IStackStyles = {
@@ -29,7 +30,7 @@ const verticalGapStackTokens: IStackTokens = {
 //const transactions = [];
 const App = (props: AppProps) => {
 	const [transactions, updateTransactions] = useState<any[]>([]);
-	//const transactions = React.useContext(TransactionsContext);
+	const [amount, setAmount] = useState<number>(0);
 
 	const columns = [
 		{ key: 'id', name: 'transaction#', fieldName: 'id', minWidth: 100, maxWidth: 200, isResizable: true },
@@ -45,26 +46,23 @@ const App = (props: AppProps) => {
 		.get(`http://localhost:3000/transactions?id=client`)
 		.then((res) => {
 			if (res.data.length <= 0) return;
-			updateTransactions( (prevList) => [...res.data]);
-		})
-	}
-
-	const _onClickSend = () => {
-		console.log(`Send button pressed`);
-		axios
-		.post(`http://localhost:3000/transactions?id=client`, {
-			from: "from",
-			to: "to",
-			amount: 100.00
-		})
-		.then((res) => {
-			_refreshTransactionsAsync();
-		})
+			updateTransactions( (prevList) => [...res.data.reverse()]);
+			setAmount(transactions.reduce((sum, t) => sum + t.amount | 0, 0));
+		});
 	}
 
 	const _onClickRefresh = () => {
 		console.log(`Refresh button pressed`);
-		_refreshTransactionsAsync();
+		axios
+		.post(`http://localhost:3000/transactions?id=client`, {
+			from: `from#${(Math.random()*1000).toFixed(0)}`,
+			to: `to#${(Math.random()*1000).toFixed(0)}`,
+			amount: (Math.random()*10).toFixed(4),
+			message: "Test Transaction"
+		})
+		.then((res) => {
+			_refreshTransactionsAsync();
+		});
 	}
 
 	useEffect(() => {
@@ -83,11 +81,14 @@ const App = (props: AppProps) => {
 		<Stack enableScopedSelectors styles={stackStyles} tokens={verticalGapStackTokens}>
 			<h1 style={{ fontSize:'24px', lineHeight:'24px', margin: 0, padding: 0, color: NeutralColors.gray120 }}>..xlc</h1>
 			<Stack horizontal horizontalAlign='end'>
-				<Text size={900}><small>x$</small>0.1692</Text>
+				<Text>@xlcdev</Text>
 			</Stack>
 			<Stack horizontal horizontalAlign='end'>
-				<DefaultButton text="Refresh" onClick={_onClickRefresh} />
-				<PrimaryButton text="Send" onClick={_onClickSend} />
+				<Text size={900}><small>x$</small>{amount.toFixed(4)}</Text>
+			</Stack>
+			<Stack horizontal horizontalAlign='end'>
+				<DefaultButton text="refresh" onClick={_onClickRefresh} />
+				<SendCalloutBtn />
 			</Stack>
 			<Stack>
 				<DetailsList

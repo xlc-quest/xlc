@@ -25,9 +25,6 @@ const serverId = models.serverPort == models.CONNECTION_PORTS[0] ? models.CONNEC
 
 app.listen(models.serverPort, () => console.log(`Server listening on port: ${models.serverPort}`));
 
-
-// const server = createServer(app);
-
 // connection sync process
 setInterval(() => {
   console.log(`Connections: ${models.connections.length}.. Next check in 5s...`);
@@ -61,14 +58,12 @@ setInterval(() => {
               apc.expiry = pc.expiry;
             }
           }
-
-          // console.log(peerConnections);
         });
       })
       .catch((e) => {});
 
     connectionsPromises.push(connectionsPromise);
-
+    
     const transactionsPromise = axios
       .get(`http://${c.url}/transactions?id=${serverId}`)
       .then((res) => {
