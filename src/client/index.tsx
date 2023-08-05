@@ -5,6 +5,10 @@ import { FluentProvider, teamsLightTheme } from '@fluentui/react-components';
 import App from './App';
 import './scss/app.scss';
 
+import { initializeIcons } from '@fluentui/react/lib/Icons';
+
+initializeIcons(/* optional base url */);
+
 const rootElement = document.getElementById("root") as HTMLElement;
 const root = ReactDOM.createRoot(rootElement);
 root.render(

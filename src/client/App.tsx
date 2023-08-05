@@ -3,7 +3,7 @@ import { useBoolean, useSetInterval } from '@fluentui/react-hooks';
 
 import { useId, Text } from "@fluentui/react-components";
 import { Stack, Label, TextField, Alignment, IStackStyles, IStackTokens, IStackItemStyles, StackItem, updateT } from '@fluentui/react';
-import { DetailsList, DetailsListLayoutMode, Selection, IColumn } from '@fluentui/react/lib/DetailsList';
+import { DetailsList, DetailsListLayoutMode, Selection, SelectionMode, IColumn } from '@fluentui/react/lib/DetailsList';
 import { MarqueeSelection } from '@fluentui/react/lib/MarqueeSelection';
 import { NeutralColors } from '@fluentui/theme';
 import { DefaultPalette } from '@fluentui/react/lib/Styling';
@@ -41,32 +41,25 @@ const App = (props: AppProps) => {
 		{ key: 'message', name: 'message', fieldName: 'message', minWidth: 100, maxWidth: 200, isResizable: true },
 	];
 
-	const _refreshTransactionsAsync = () => {
+	const refreshTransactionsAsync = () => {
 		axios
 		.get(`http://localhost:3000/transactions?id=client`)
 		.then((res) => {
 			if (res.data.length <= 0) return;
-			updateTransactions( (prevList) => [...res.data.reverse()]);
-			setAmount(transactions.reduce((sum, t) => sum + t.amount | 0, 0));
+			updateTransactions( (prevList) => {
+				const updatedTransactions = [...res.data.reverse()];
+				setAmount(updatedTransactions.reduce((sum, t) =>  sum += Number(t.amount), 0));
+				return updatedTransactions;
+			});
 		});
 	}
 
 	const _onClickRefresh = () => {
-		console.log(`Refresh button pressed`);
-		axios
-		.post(`http://localhost:3000/transactions?id=client`, {
-			from: `from#${(Math.random()*1000).toFixed(0)}`,
-			to: `to#${(Math.random()*1000).toFixed(0)}`,
-			amount: (Math.random()*10).toFixed(4),
-			message: "Test Transaction"
-		})
-		.then((res) => {
-			_refreshTransactionsAsync();
-		});
+		refreshTransactionsAsync();
 	}
 
 	useEffect(() => {
-		_refreshTransactionsAsync();
+		refreshTransactionsAsync();
 	}, []);
 
 	// axios
@@ -84,16 +77,17 @@ const App = (props: AppProps) => {
 				<Text>@xlcdev</Text>
 			</Stack>
 			<Stack horizontal horizontalAlign='end'>
-				<Text size={900}><small>x$</small>{amount.toFixed(4)}</Text>
+				<Text size={900}><small>x$</small>{amount.toFixed(2)}</Text>
 			</Stack>
 			<Stack horizontal horizontalAlign='end'>
 				<DefaultButton text="refresh" onClick={_onClickRefresh} />
-				<SendCalloutBtn />
+				<SendCalloutBtn refreshTransactionsAsync={refreshTransactionsAsync} />
 			</Stack>
 			<Stack>
 				<DetailsList
 						items={transactions}
 						columns={columns}
+						selectionMode={SelectionMode.none}
 						layoutMode={DetailsListLayoutMode.justified}
 						ariaLabelForSelectionColumn="Toggle selection"
 						ariaLabelForSelectAllCheckbox="Toggle selection for all items"
