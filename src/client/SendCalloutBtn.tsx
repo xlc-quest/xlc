@@ -14,12 +14,10 @@ import {
 import { useBoolean, useId } from '@fluentui/react-hooks';
 import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
 import axios from 'axios';
-import { FormEvent } from 'react';
 import { configs } from '../configs';
 
 export const SendCalloutBtn = (props: { refreshTransactionsAsync: Function }) => {
   const [isCalloutVisible, { toggle: toggleIsCalloutVisible }] = useBoolean(false);
-  const [amount, setAmount] = React.useState('0.00');
   const buttonId = useId('callout-button');
 
   const [transaction, setTransaction] = React.useState({ from: '@xlcdev', to: '@xlcdevs', amount: '0.01', message: '' });
