@@ -50,9 +50,12 @@ export function start(setClientFunc?: Function) {
         return res.data;
     });
 
-    const connectionsPromise = axios.get(`${configs.url}/connections?id=${client.id}`).then((res) => {
+    const connectionsPromise = axios.get(`${configs.url}/connections?id=${client.id}`, {timeout: 1000}).then((res) => {
         if (res.data.length <= 0) return;
         return res.data;
+    }).catch(e => {
+        console.warn(`GET /connections ..error after 1s, trying localhost..`);
+        configs.url = 'http://localhost:3000';
     });
 
     Promise.all([ipPromise, connectionsPromise]).then((values) => {
@@ -64,7 +67,7 @@ export function start(setClientFunc?: Function) {
     });
 
     setInterval(() => {
-        axios.get(`${configs.url}/connections?id=${client.id}`).then((res) => {
+        axios.get(`${configs.url}/connections?id=${client.id}`, {}).then((res) => {
             if (res.data.length <= 0) return;
 
             client.connections = res.data;

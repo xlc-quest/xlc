@@ -78,7 +78,9 @@ const App = (props: AppProps) => {
 			<Stack horizontal horizontalAlign='end' style={{color:'gray'}}>
 				<Text size={100}>..<span style={{color: 'violet'}}>{client.ip}</span></Text>
 				<Text size={100}><b style={{color: 'purple'}}>{client.id}</b></Text>
-				<Text size={100}>..connected to: <b style={{color: 'green'}}>{client.connections[0].url}/{client.connections.length}</b>..</Text>
+				<Text size={100}>..connected to: <b style={{color: 'green'}}>
+					{client.connections?.length > 0 ? client.connections[0].url: '0.0.0.0'}/{client.connections?.length}</b>..
+				</Text>
 			</Stack>
 			<Stack horizontal horizontalAlign='end'>
 				<Text size={900}><small>x$</small>{client.balance.toFixed(4)}</Text>
