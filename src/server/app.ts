@@ -24,41 +24,65 @@ app.use(apiRouter);
 const serverUrl = '127.0.0.1:' + models.serverPort;
 const serverId = models.serverPort == models.CONNECTION_PORTS[0] ? models.CONNECTION_SERVER_ID : '@server:' + models.serverPort;
 
-app.listen(models.serverPort, () => console.log(`Server listening on port: ${models.serverPort}`));
+app.listen(models.serverPort, () => console.log(`server listening on port: ${models.serverPort}..`));
 
 function isTrue(probability: number) {
   return !!probability && Math.random() <= probability;
 };
 
 // connection sync process
+axios.get(`http://${models.connections[0].url}/connections?id=${serverId}&url=${serverUrl}`)
+  .then((res) => {
+    const connection: Connection = res.data[0];
+    models.connections[0].registeredTime = connection.registeredTime;
+  });
+
 setInterval(() => {
-  console.log(`Connections: ${models.connections.length}.. Next check in 5s...`);
+  console.log(`..connections: ${models.connections.length}.. next check in 5s..`);
 
   const now = new Date().getTime();
   models.removeInactiveConnections(now);
 
-  models.connections.forEach(c => {
-    const connectionAge = (now - c.registeredTime)/1000;
+  const startTime = models.connections[0].registeredTime;
+  if (!startTime) {
+    console.warn(`server start time not set yet..`);
+    return;
+  }
 
-    if (c.id != models.CONNECTION_SERVER_ID && c.id != serverId && connectionAge > 10)
+  models.connections.forEach(c => {
+    if (!c.registeredTime) return;
+
+    const connectionAge = (now - c.registeredTime)/1000;
+    const weight = (1/models.connections.length);
+    const serverAge = (now - startTime)/1000;
+    c.influence = (weight + (weight * connectionAge/serverAge))/2;
+
+    if (c.id != models.CONNECTION_SERVER_ID && c.id != '@root' && c.id != serverId && connectionAge > 10)
     {
       // console.log(`Connection age bonus to be implemented.. ${connectionAge}s`);
       const recentRewardTx = models.transactions.find((t) => t.from == serverId && t.to == c.id && t.time > now - 10000);
       if (!recentRewardTx) {
         const reward = .0001;
-        const weighted = .49 + connectionAge/100000; // TODO: revisit algorithm
-        const probability = weighted > .5 ? .5 : weighted;
 
-        console.log(`Getting reward of x$${reward} with probability of ${(probability*100).toFixed(1)}%`);
-        if (isTrue(probability)) {
-          console.log(`Strike!`);
+        // console.log(`${c.id}\
+        //   \nweight: ${weight}, serverAge: ${serverAge}s, connectionAge: ${connectionAge}s, \
+        //   \nconnectionWeight: ${connectionAge / serverAge}, influence: ${influence.toFixed(1)}`);
+
+        console.log(`${c.id} influence ${(c.influence*100).toFixed(1)}%`);
+        //const weightedProb = .49 + connectionAge/100000; // TODO: revisit algorithm
+        //const prob = weightedProb > .5 ? .5 : weightedProb;
+        const prob = .1 + c.influence;
+
+        // console.log(`Getting reward of x$${reward} with probability of ${(probability*100).toFixed(1)}%`);
+        if (isTrue(prob)) {
+          console.log(`!!*#*#*STRIKE*#*#*!!`);
 
           models.transactions.push({
             id: crypto.randomUUID(),
             from: serverId,
             to: c.id,
             amount: reward,
-            message: 'connection reward',
+            message: `connection reward strike at ${(prob*100).toFixed(1)}%`,
             time: new Date().getTime()
           });
         }
@@ -73,11 +97,9 @@ setInterval(() => {
   let transactionsPromises: Promise<void>[] = [];
 
   models.connections.forEach(async (c) => {
-    if (!c.url) return;
-    console.log(
-      `Getting connections from server with address... ${c.id}(${c.url})`
-    );
+    if (!c.url || c.url == serverUrl) return;
 
+    console.log(`hadnling sync from ${c.id}(${c.url})..`);
     const connectionsPromise = axios
       .get(`http://${c.url}/connections?id=${serverId}&url=${serverUrl}`)
       .then((res) => {
@@ -89,7 +111,7 @@ setInterval(() => {
           } else {
             if (apc.expiry && pc.expiry && apc.expiry < pc.expiry) {
               apc.expiry = pc.expiry;
-              apc.time = pc.time;
+              apc.influence = pc.influence? pc.influence : undefined;
             }
           }
         });
@@ -117,18 +139,15 @@ setInterval(() => {
   });
 
   Promise.all(connectionsPromises).then(() => {
-    console.log(`All peer connections call loaded...${connectionsPromises.length}`);
-    allPeerConnections.forEach((ac) => {
-      // const influence = ac.expiry? (ac.expiry - ac.registeredTime) * .0001 : 0;
-      // console.log(influence % .01);
-
-      let c = models.connections.find((c) => c.id == ac.id);
+    console.log(`..all peer connections call loaded...${connectionsPromises.length}`);
+    allPeerConnections.forEach((pc) => {
+      let c = models.connections.find((c) => c.id == pc.id);
       if (!c) {
-        models.connections.push(ac);
+        models.connections.push(pc);
       } else {
-        if (c.expiry && ac.expiry && c.expiry < ac.expiry) {
-          c.expiry = ac.expiry;
-          c.time = ac.time;
+        if (c.expiry && pc.expiry && c.expiry < pc.expiry) {
+          c.expiry = pc.expiry;
+          c.influence = pc.influence? pc.influence : undefined;
         }
       }
     });
@@ -138,13 +157,13 @@ setInterval(() => {
 
   Promise.all(transactionsPromises).then(() => {
     console.log(
-      `All peer transactions call loaded...${transactionsPromises.length}`
+      `..all peer transactions call loaded...${transactionsPromises.length}`
     );
 
-    allPeerTransactions.forEach((at) => {
-      let t = models.transactions.find((t) => t.id == at.id);
+    allPeerTransactions.forEach((pt) => {
+      let t = models.transactions.find((t) => t.id == pt.id);
       if (!t) {
-        models.transactions.push(at);
+        models.transactions.push(pt);
       } else {
         // throw error if mismatch
       }
@@ -156,7 +175,7 @@ setInterval(() => {
 models.addExtendConnections(serverId, serverUrl);
 setInterval(() => {
   console.log(
-    `Updating connections for sever '${serverId}' and starting block process...`
+    `updating connections for sever '${serverId}'..`
   );
   models.addExtendConnections(serverId, serverUrl);
 }, 4000);

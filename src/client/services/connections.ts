@@ -50,7 +50,7 @@ export function start(setClientFunc?: Function) {
         return res.data;
     });
 
-    const connectionsPromise = axios.get(`${configs.url}/connections?id=client:${client.ip}`).then((res) => {
+    const connectionsPromise = axios.get(`${configs.url}/connections?id=${client.id}`).then((res) => {
         if (res.data.length <= 0) return;
         return res.data;
     });

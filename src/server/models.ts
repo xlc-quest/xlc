@@ -11,8 +11,7 @@ export interface Transaction {
 
 export interface Connection {
     id: string;
-    registeredTime: number;
-    time: number;
+    registeredTime?: number;
     url?: string;
     expiry?: number;
     influence?: number;
@@ -29,8 +28,7 @@ export const serverPort =
 export const connections: Connection[] = [
   {
     id: CONNECTION_SERVER_ID,
-    registeredTime: new Date().getTime(),
-    time: new Date().getTime(),
+    registeredTime: serverPort == '3000' ? new Date().getTime() : undefined,
     url: `127.0.0.1:${CONNECTION_PORTS[0]}`,
   }
 ];
@@ -40,7 +38,7 @@ export const transactions: Transaction[] = [];
 export function addExtendConnections(id: string, url?: string): Connection[] {
   let connection = connections.find(c => c.url == url && c.id != id);
   if (connection) {
-    console.warn(`Connection '${connection.id}' with same url already exists. Skipping '${id}'`);
+    console.warn(`same url connection '${connection.id}' exists.. skipping '${id}'..`);
     return connections;
   }
 
@@ -49,14 +47,12 @@ export function addExtendConnections(id: string, url?: string): Connection[] {
 
   if (connection) {
     connection.expiry = newExpiry;
-    connection.time = new Date().getTime();
   } else {
     connections.push({
       id: id,
       url: url,
       expiry: newExpiry,
       registeredTime: new Date().getTime(),
-      time: new Date().getTime()
     });
   }
 
@@ -64,10 +60,10 @@ export function addExtendConnections(id: string, url?: string): Connection[] {
 }
 
 export function removeInactiveConnections(now: number) {
-  let index = connections.findIndex((c) => c.expiry && c.expiry < now);
+  let index = connections.findIndex((c) => c.id != CONNECTION_SERVER_ID && c.expiry && c.expiry < now);
   while (index > -1) {
-    console.log(`Removing inactive connection... ${connections[index].id}`);
+    console.log(`removing inactive connection... ${connections[index].id}`);
     connections.splice(index, 1);
-    index = connections.findIndex((c) => c.expiry && c.expiry < now);
+    index = connections.findIndex((c) => c.id != CONNECTION_SERVER_ID && c.expiry && c.expiry < now);
   }
 }

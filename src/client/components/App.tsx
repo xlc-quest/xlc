@@ -40,12 +40,12 @@ const App = (props: AppProps) => {
 	const [client, setClient] = useState(connections.client);
 
 	const columns = [
-		{ key: 'id', name: 'transaction#', fieldName: 'id', minWidth: 100, maxWidth: 200, isResizable: true },
-		{ key: 'time', name: 'time', fieldName: 'time', minWidth: 100, maxWidth: 200, isResizable: true },
-		{ key: 'from', name: 'from', fieldName: 'from', minWidth: 100, maxWidth: 200, isResizable: true },
-		{ key: 'to', name: 'to', fieldName: 'to', minWidth: 100, maxWidth: 200, isResizable: true },
-		{ key: 'amount', name: 'amount', fieldName: 'amount', minWidth: 100, maxWidth: 200, isResizable: true },
-		{ key: 'message', name: 'message', fieldName: 'message', minWidth: 100, maxWidth: 200, isResizable: true },
+		{ key: 'id', name: 'transaction#', fieldName: 'id', 		minWidth: 50, maxWidth: 220, isResizable: true },
+		{ key: 'time', name: 'time', fieldName: 'time', 			minWidth: 50, maxWidth: 100, isResizable: true },
+		{ key: 'from', name: 'from', fieldName: 'from', 			minWidth: 50, maxWidth: 100, isResizable: true },
+		{ key: 'to', name: 'to', fieldName: 'to', 					minWidth: 50, maxWidth: 100, isResizable: true },
+		{ key: 'amount', name: 'amount', fieldName: 'amount', 		minWidth: 50, maxWidth: 100, isResizable: true },
+		{ key: 'message', name: 'message', fieldName: 'message', 	minWidth: 200, maxWidth: 500, isResizable: true },
 	];
 
 	const refreshTransactionsAsync = () => {
@@ -90,15 +90,16 @@ const App = (props: AppProps) => {
 			</Stack>
 			<Stack horizontal horizontalAlign='end'>
 			{ transactions.length > 0 ? (
+				<div style={{width:'100%'}}>
 				<DetailsList
-						items={transactions}
-						columns={columns}
-						selectionMode={SelectionMode.none}
-						layoutMode={DetailsListLayoutMode.justified}
-						ariaLabelForSelectionColumn="Toggle selection"
-						ariaLabelForSelectAllCheckbox="Toggle selection for all items"
-						checkButtonAriaLabel="select row"
-				/>) : (
+					items={transactions}
+					columns={columns}
+					selectionMode={SelectionMode.none}
+					layoutMode={DetailsListLayoutMode.justified}
+					ariaLabelForSelectionColumn="Toggle selection"
+					ariaLabelForSelectAllCheckbox="Toggle selection for all items"
+					checkButtonAriaLabel="select row"
+				/></div>) : (
 					<Text>no transactions to display</Text>
 				)
 			}
