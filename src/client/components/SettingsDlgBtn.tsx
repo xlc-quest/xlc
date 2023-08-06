@@ -5,7 +5,7 @@ import { ContextualMenu } from '@fluentui/react/lib/ContextualMenu';
 import { Toggle } from '@fluentui/react/lib/Toggle';
 import { useBoolean } from '@fluentui/react-hooks';
 import { Stack, TextField } from '@fluentui/react';
-import { client } from '../services/connections';
+import * as connections from '../services/connections';
 
 const modalPropsStyles = { main: { maxWidth: 450 } };
 const dialogContentProps = {
@@ -28,7 +28,9 @@ export const SettingsDlgBtn: React.FunctionComponent = () => {
   );
 
   const onConfirmSettings = () => {
+    const client = connections.client;
     client.id = settings.username;
+    connections.setClient({...client});
   };
 
   return (

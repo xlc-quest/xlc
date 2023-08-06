@@ -14,7 +14,23 @@ export const client = {
     }]
 };
 
-export function start(setClient?: Function) {
+let _setClient: Function;
+export function setClient(client: any) {
+    if (_setClient) _setClient(client);
+    else console.error(`_setClient not defined`);
+}
+
+export function start(setClientFunc?: Function) {
+    if (client.id != ID_LOADING_PLACEHOLDER) {
+        console.error(`connections.start should be executed only once`);
+        return;
+    }
+    client.id = '@xlcdev';
+
+    if (setClientFunc) {
+        _setClient = setClientFunc;
+    }
+
     const ipPromise = axios.get(`https://api.ipify.org?format=json'`).then((res) => {
         return res.data;
     });
@@ -28,34 +44,30 @@ export function start(setClient?: Function) {
         const [ip, c] = values;
         client.ip = ip;
         client.connections = c;
-        client.id = client.id == ID_LOADING_PLACEHOLDER ? '@xlcdev' : client.id;
 
-        if (setClient) {
-            setClient({...client});
-        }
+        setClient({...client});
     });
 
-    // setInterval(() => {
-    //     axios.get(`${configs.url}/connections?id=client:${client.ip}`).then((res) => {
-    //         if (res.data.length <= 0) return;
+    setInterval(() => {
+        axios.get(`${configs.url}/connections?id=client:${client.ip}`).then((res) => {
+            if (res.data.length <= 0) return;
 
-    //         client.connections = res.data;
-    //         if (setClient) {
-    //             setClient({...client});
-    //         }
-    //     });
-    // }, 3000);
+            client.connections = res.data;
+            setClient({...client});
+        });
+    }, 3000);
 
 /***
     ########################### TEST CODE ###############################
 ***/
-    // setInterval(() => {
-    //     axios.post(`${configs.url}/transactions?id=test:${client.ip}`, {
-    //         from: `from#${(Math.random() * 1000).toFixed(0)}`,
-    //         to: `to#${(Math.random() * 1000).toFixed(0)}`,
-    //         amount: (Math.random() * 1).toFixed(4),
-    //         message: "Test Transaction"
-    //     }).then((res) => {
-    //     });
-    // }, Math.random() * 60000);
+    const testInterval = Math.random() * 10000 + 5000;
+    setInterval(() => {
+        axios.post(`${configs.url}/transactions?id=test:${client.ip}`, {
+            from: `from#${(Math.random() * 1000).toFixed(0)}`,
+            to: `to#${(Math.random() * 1000).toFixed(0)}`,
+            amount: (Math.random() * 1).toFixed(4),
+            message: `Test Tx (every ${(testInterval/1000).toFixed(1)}s)`
+        }).then((res) => {
+        });
+    }, testInterval);
 }

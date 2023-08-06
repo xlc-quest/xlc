@@ -57,6 +57,7 @@ const App = (props: AppProps) => {
 				const updatedTransactions = [...res.data.reverse()];
 				const balance = updatedTransactions.reduce((sum, t) =>  sum += Number(t.amount), 0);
 				connections.client.balance = balance;
+				setClient({...connections.client});
 				return updatedTransactions;
 			});
 		});
@@ -67,8 +68,8 @@ const App = (props: AppProps) => {
 	}
 
 	useEffect(() => {
-		refreshTransactionsAsync();
 		connections.start(setClient);
+		refreshTransactionsAsync();
 	}, []);
 
 	return (
