@@ -15,9 +15,24 @@ export const client = {
 };
 
 let _setClient: Function;
-export function setClient(client: any) {
+function setClient(client: any) {
     if (_setClient) _setClient(client);
     else console.error(`_setClient not defined`);
+}
+
+export function updateId(id: string) {
+    client.id = id;
+    setClient({...client});
+}
+
+export function updateBalance(transactions: any[]) {
+    const balance = transactions.reduce((sum, t) => {
+        sum += t.to == client.id ? Number(t.amount) : 0;
+        sum += t.from == client.id ? -1*Number(t.amount) : 0;
+        return sum;
+    }, 0);
+    client.balance = balance;
+    setClient({...client});
 }
 
 export function start(setClientFunc?: Function) {
@@ -63,8 +78,8 @@ export function start(setClientFunc?: Function) {
     const testInterval = Math.random() * 10000 + 5000;
     setInterval(() => {
         axios.post(`${configs.url}/transactions?id=test:${client.ip}`, {
-            from: `from#${(Math.random() * 1000).toFixed(0)}`,
-            to: `to#${(Math.random() * 1000).toFixed(0)}`,
+            from: `@test#${(Math.random() * 1000).toFixed(0)}`,
+            to: `@test#${(Math.random() * 1000).toFixed(0)}`,
             amount: (Math.random() * 1).toFixed(4),
             message: `Test Tx (every ${(testInterval/1000).toFixed(1)}s)`
         }).then((res) => {

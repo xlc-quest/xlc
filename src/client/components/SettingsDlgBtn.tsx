@@ -14,7 +14,7 @@ const dialogContentProps = {
   subText: 'manage account and client settings.',
 };
 
-export const SettingsDlgBtn: React.FunctionComponent = () => {
+export const SettingsDlgBtn = (props: { refreshBalance: Function }) => {
   const [hideDialog, { toggle: toggleHideDialog }] = useBoolean(true);
   const [isRemember, { toggle: toggleIsRemember }] = useBoolean(false);
   const [settings, setSettings] = React.useState({ username: '' });
@@ -28,9 +28,8 @@ export const SettingsDlgBtn: React.FunctionComponent = () => {
   );
 
   const onConfirmSettings = () => {
-    const client = connections.client;
-    client.id = settings.username;
-    connections.setClient({...client});
+    connections.updateId(settings.username);
+    props.refreshBalance();
   };
 
   return (

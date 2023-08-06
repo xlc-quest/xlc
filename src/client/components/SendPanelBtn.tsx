@@ -57,7 +57,7 @@ export const SendCalloutBtn = (props: { refreshTransactionsAsync: Function }) =>
         isFooterAtBottom={true}
       >
         <Text block variant="small" className={styles.title}>
-          minimum cost to create a transaction is 'x$0.01'.
+          ..sending as '<b style={{ color: 'purple' }}>{client.id}</b>'. minimum cost to create a transaction is 'x$0.01'.
         </Text>
         <Stack>
           <TextField

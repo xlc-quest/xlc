@@ -53,14 +53,13 @@ const App = (props: AppProps) => {
 		.get(`${configs.url}/transactions?id=client`)
 		.then((res) => {
 			if (res.data.length <= 0) return;
-			setTransactions((prevList) => {
-				const updatedTransactions = [...res.data.reverse()];
-				const balance = updatedTransactions.reduce((sum, t) =>  sum += Number(t.amount), 0);
-				connections.client.balance = balance;
-				setClient({...connections.client});
-				return updatedTransactions;
-			});
+			setTransactions((prevList) => [...res.data.reverse()]);
+			connections.updateBalance(res.data);
 		});
+	}
+
+	const refreshBalance = () => {
+		connections.updateBalance(transactions);
 	}
 
 	const _onClickRefresh = () => {
@@ -77,16 +76,16 @@ const App = (props: AppProps) => {
 		<Stack enableScopedSelectors styles={stackStyles} tokens={verticalGapStackTokens}>
 			<h1 style={{ fontSize:'24px', lineHeight:'24px', textAlign:'right', margin: 0, padding: 0, color: NeutralColors.gray120 }}>..xlc</h1>
 			<Stack horizontal horizontalAlign='end' style={{color:'gray'}}>
-				<Text size={100}>..{client.ip}</Text>
-				<Text size={100}>{client.id}</Text>
-				<Text size={100}>..connected to: {client.connections[0].url}/{client.connections.length}..</Text>
+				<Text size={100}>..<span style={{color: 'violet'}}>{client.ip}</span></Text>
+				<Text size={100}><b style={{color: 'purple'}}>{client.id}</b></Text>
+				<Text size={100}>..connected to: <b style={{color: 'green'}}>{client.connections[0].url}/{client.connections.length}</b>..</Text>
 			</Stack>
 			<Stack horizontal horizontalAlign='end'>
 				<Text size={900}><small>x$</small>{client.balance.toFixed(4)}</Text>
 			</Stack>
 			<Stack horizontal horizontalAlign='end'>
 				<IconButton iconProps={{iconName: 'Refresh'}} text="refresh" onClick={_onClickRefresh} />
-				<SettingsDlgBtn></SettingsDlgBtn>
+				<SettingsDlgBtn refreshBalance={refreshBalance}></SettingsDlgBtn>
 				<SendCalloutBtn refreshTransactionsAsync={refreshTransactionsAsync} />
 			</Stack>
 			<Stack>
