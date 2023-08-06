@@ -77,9 +77,9 @@ const App = (props: AppProps) => {
 			<h1 style={{ fontSize:'24px', lineHeight:'24px', textAlign:'right', margin: 0, padding: 0, color: NeutralColors.gray120 }}>..xlc</h1>
 			<Stack horizontal horizontalAlign='end' style={{color:'gray'}}>
 				<Text size={100}>..<span style={{color: 'violet'}}>{client.ip}</span></Text>
-				<Text size={100}><b style={{color: 'purple'}}>{client.id}</b></Text>
-				<Text size={100}>..connected to: <span style={client.connections?.length > 1 ? {fontWeight: 'bold', color: 'green'} : {fontWeight: 'normal', color: 'gray'}}>
-					{client.connections?.length > 0 ? client.connections[0].url: '0.0.0.0'}/{client.connections?.length}</span>..
+				<Text size={100}><span style={client.id == '@loading..' ? {color: 'gray'} : {color: 'purple'}}>{client.id}</span></Text>
+				<Text size={100}>..connected to <span style={client.connections?.length > 1 ? {fontWeight: 'bold', color: 'green'} : {fontWeight: 'normal', color: 'gray'}}>
+					{client.connections?.length > 0 ? client.connections[0].url: 'loading'}/{client.connections?.length}</span>..
 				</Text>
 			</Stack>
 			<Stack horizontal horizontalAlign='end'>

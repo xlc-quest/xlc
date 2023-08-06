@@ -10,7 +10,7 @@ export const client = {
     balance: 0,
     connections: [{
         id: CONNECTIONS_SERVER_ID,
-        url: window.location.host,
+        url: 'loading',
     }]
 };
 
@@ -55,7 +55,7 @@ export function start(setClientFunc?: Function) {
         return res.data;
     }).catch(e => {
         console.warn(`GET /connections ..error after 1s, trying localhost..`);
-        configs.url = 'http://localhost:3000';
+        configs.url = `http://localhost:${window.location.port}`;
     });
 
     Promise.all([ipPromise, connectionsPromise]).then((values) => {

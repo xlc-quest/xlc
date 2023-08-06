@@ -18,9 +18,7 @@ export interface Connection {
 }
 
 export const CONNECTION_SERVER_ID = '@connections';
-export const CONNECTION_PORTS = [
-  '3000'
-];
+export const CONNECTION_PORTS = ['3000', '80', '8080'];
 
 export const serverPort =
   process.env.PORT || process.argv[2] || CONNECTION_PORTS[0] || (Math.random() * 10000).toFixed(0);
@@ -28,7 +26,7 @@ export const serverPort =
 export const connections: Connection[] = [
   {
     id: CONNECTION_SERVER_ID,
-    registeredTime: serverPort == '3000' ? new Date().getTime() : undefined,
+    registeredTime: CONNECTION_PORTS.includes(serverPort) ? new Date().getTime() : undefined,
     url: `127.0.0.1:${CONNECTION_PORTS[0]}`,
   }
 ];

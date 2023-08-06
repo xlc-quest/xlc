@@ -4,7 +4,7 @@ import apiRouter from './routes';
 import axios from 'axios';
 import * as crypto from 'crypto'
 
-import {Connection, Transaction} from './models';
+import {CONNECTION_PORTS, Connection, Transaction} from './models';
 import * as models from './models';
 
 // import cors from 'cors';
@@ -22,7 +22,7 @@ app.use(apiRouter);
 
 //const port = process.env.PORT || 3000;
 const serverUrl = '127.0.0.1:' + models.serverPort;
-const serverId = ['3000', '80', '8080'].includes(models.serverPort) ? models.CONNECTION_SERVER_ID : '@server:' + models.serverPort;
+const serverId = CONNECTION_PORTS.includes(models.serverPort) ? models.CONNECTION_SERVER_ID : '@server:' + models.serverPort;
 
 app.listen(models.serverPort, () => console.log(`server listening on port: ${models.serverPort}..`));
 
