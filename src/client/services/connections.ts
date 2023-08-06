@@ -10,7 +10,7 @@ export const client = {
     balance: 0,
     connections: [{
         id: CONNECTIONS_SERVER_ID,
-        url: 'about:blank',
+        url: window.location.host,
     }]
 };
 

@@ -22,7 +22,7 @@ app.use(apiRouter);
 
 //const port = process.env.PORT || 3000;
 const serverUrl = '127.0.0.1:' + models.serverPort;
-const serverId = models.serverPort == models.CONNECTION_PORTS[0] ? models.CONNECTION_SERVER_ID : '@server:' + models.serverPort;
+const serverId = ['3000', '80', '8080'].includes(models.serverPort) ? models.CONNECTION_SERVER_ID : '@server:' + models.serverPort;
 
 app.listen(models.serverPort, () => console.log(`server listening on port: ${models.serverPort}..`));
 
