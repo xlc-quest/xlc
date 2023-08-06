@@ -39,7 +39,7 @@ router.post('/transactions', (req, res) => {
         to: req.body.to,
         amount: req.body.amount,
         message: req.body.message,
-        time: new Date(),
+        time: new Date().getTime()
     };
 
     models.transactions.push(transaction);

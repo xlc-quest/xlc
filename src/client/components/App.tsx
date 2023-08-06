@@ -88,7 +88,8 @@ const App = (props: AppProps) => {
 				<SettingsDlgBtn refreshBalance={refreshBalance}></SettingsDlgBtn>
 				<SendCalloutBtn refreshTransactionsAsync={refreshTransactionsAsync} />
 			</Stack>
-			<Stack>
+			<Stack horizontal horizontalAlign='end'>
+			{ transactions.length > 0 ? (
 				<DetailsList
 						items={transactions}
 						columns={columns}
@@ -97,7 +98,10 @@ const App = (props: AppProps) => {
 						ariaLabelForSelectionColumn="Toggle selection"
 						ariaLabelForSelectAllCheckbox="Toggle selection for all items"
 						checkButtonAriaLabel="select row"
-				/>
+				/>) : (
+					<Text>no transactions to display</Text>
+				)
+			}
 			</Stack>
 		</Stack>
 	</ConnectionsContext.Provider>

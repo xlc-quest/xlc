@@ -2,6 +2,7 @@ import * as express from 'express';
 import apiRouter from './routes';
 //import bodyParser from 'body-parser';
 import axios from 'axios';
+import * as crypto from 'crypto'
 
 import {Connection, Transaction} from './models';
 import * as models from './models';
@@ -21,9 +22,13 @@ app.use(apiRouter);
 
 //const port = process.env.PORT || 3000;
 const serverUrl = '127.0.0.1:' + models.serverPort;
-const serverId = models.serverPort == models.CONNECTION_PORTS[0] ? models.CONNECTION_SERVER_ID : 'server:' + models.serverPort;
+const serverId = models.serverPort == models.CONNECTION_PORTS[0] ? models.CONNECTION_SERVER_ID : '@server:' + models.serverPort;
 
 app.listen(models.serverPort, () => console.log(`Server listening on port: ${models.serverPort}`));
+
+function isTrue(probability: number) {
+  return !!probability && Math.random() <= probability;
+};
 
 // connection sync process
 setInterval(() => {
@@ -31,6 +36,35 @@ setInterval(() => {
 
   const now = new Date().getTime();
   models.removeInactiveConnections(now);
+
+  models.connections.forEach(c => {
+    const connectionAge = (now - c.registeredTime)/1000;
+
+    if (c.id != models.CONNECTION_SERVER_ID && c.id != serverId && connectionAge > 10)
+    {
+      // console.log(`Connection age bonus to be implemented.. ${connectionAge}s`);
+      const recentRewardTx = models.transactions.find((t) => t.from == serverId && t.to == c.id && t.time > now - 10000);
+      if (!recentRewardTx) {
+        const reward = .0001;
+        const weighted = .49 + connectionAge/100000; // TODO: revisit algorithm
+        const probability = weighted > .5 ? .5 : weighted;
+
+        console.log(`Getting reward of x$${reward} with probability of ${(probability*100).toFixed(1)}%`);
+        if (isTrue(probability)) {
+          console.log(`Strike!`);
+
+          models.transactions.push({
+            id: crypto.randomUUID(),
+            from: serverId,
+            to: c.id,
+            amount: reward,
+            message: 'connection reward',
+            time: new Date().getTime()
+          });
+        }
+      }
+    }
+  });
 
   let allPeerConnections: Connection[] = [];
   let connectionsPromises: Promise<void>[] = [];
@@ -40,7 +74,6 @@ setInterval(() => {
 
   models.connections.forEach(async (c) => {
     if (!c.url) return;
-
     console.log(
       `Getting connections from server with address... ${c.id}(${c.url})`
     );
@@ -56,6 +89,7 @@ setInterval(() => {
           } else {
             if (apc.expiry && pc.expiry && apc.expiry < pc.expiry) {
               apc.expiry = pc.expiry;
+              apc.time = pc.time;
             }
           }
         });
@@ -85,12 +119,16 @@ setInterval(() => {
   Promise.all(connectionsPromises).then(() => {
     console.log(`All peer connections call loaded...${connectionsPromises.length}`);
     allPeerConnections.forEach((ac) => {
+      // const influence = ac.expiry? (ac.expiry - ac.registeredTime) * .0001 : 0;
+      // console.log(influence % .01);
+
       let c = models.connections.find((c) => c.id == ac.id);
       if (!c) {
         models.connections.push(ac);
       } else {
         if (c.expiry && ac.expiry && c.expiry < ac.expiry) {
           c.expiry = ac.expiry;
+          c.time = ac.time;
         }
       }
     });

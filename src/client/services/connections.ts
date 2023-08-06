@@ -64,7 +64,7 @@ export function start(setClientFunc?: Function) {
     });
 
     setInterval(() => {
-        axios.get(`${configs.url}/connections?id=client:${client.ip}`).then((res) => {
+        axios.get(`${configs.url}/connections?id=${client.id}`).then((res) => {
             if (res.data.length <= 0) return;
 
             client.connections = res.data;
@@ -75,14 +75,14 @@ export function start(setClientFunc?: Function) {
 /***
     ########################### TEST CODE ###############################
 ***/
-    const testInterval = Math.random() * 10000 + 5000;
-    setInterval(() => {
-        axios.post(`${configs.url}/transactions?id=test:${client.ip}`, {
-            from: `@test#${(Math.random() * 1000).toFixed(0)}`,
-            to: `@test#${(Math.random() * 1000).toFixed(0)}`,
-            amount: (Math.random() * 1).toFixed(4),
-            message: `Test Tx (every ${(testInterval/1000).toFixed(1)}s)`
-        }).then((res) => {
-        });
-    }, testInterval);
+    // const testInterval = Math.random() * 10000 + 5000;
+    // setInterval(() => {
+    //     axios.post(`${configs.url}/transactions?id=test:${client.ip}`, {
+    //         from: `@test#${(Math.random() * 1000).toFixed(0)}`,
+    //         to: `@test#${(Math.random() * 1000).toFixed(0)}`,
+    //         amount: (Math.random() * 1).toFixed(4),
+    //         message: `Test Tx (every ${(testInterval/1000).toFixed(1)}s)`
+    //     }).then((res) => {
+    //     });
+    // }, testInterval);
 }

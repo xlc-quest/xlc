@@ -47,7 +47,7 @@ export const SendCalloutBtn = (props: { refreshTransactionsAsync: Function }) =>
 
   return (
     <>
-      <PrimaryButton iconProps={{iconName: 'Send'}} id={buttonId} onClick={toggleIsPanelVisible} text="send" />
+      <PrimaryButton disabled={!(client.id == '@root' || client.balance > 0.01)} iconProps={{iconName: 'Send'}} id={buttonId} onClick={toggleIsPanelVisible} text="send" />
       <Panel
         isOpen={isPanelVisible}
         role="alertdialog"
