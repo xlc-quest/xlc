@@ -27,7 +27,7 @@ export const connections: Connection[] = [
   {
     id: CONNECTION_SERVER_ID,
     registeredTime: CONNECTION_PORTS.includes(serverPort) ? new Date().getTime() : undefined,
-    url: `127.0.0.1:${CONNECTION_PORTS[0]}`,
+    url: `127.0.0.1:${serverPort}`,
   }
 ];
   
