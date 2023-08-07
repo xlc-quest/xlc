@@ -4,7 +4,7 @@ import { Connection } from "../models";
 export const connections: Connection[] = [
   {
     id: env.CONNECTION_SERVER_ID,
-    url: env.CONNECTION_SERVER_URLS[0],
+    url: env.CONNECTION_SERVER_URLS[1],
   }
 ];
 
@@ -13,25 +13,37 @@ const _sync = {
 }
 
 export function _extendConnections(id: string, url?: string): Connection[] {
-  let connection = connections.find(c => c.url == url && c.id != id);
+  if (!id.startsWith('@')) {
+    console.warn(`skipping unsupported clinent id '${id}'..`);
+    return connections;
+  }
+
+  if (id == env.CONNECTION_SERVER_ID && connections[0].url == env.SERVER_URL) {
+    console.log(`setting up the first @connections..`);
+    connections[0].registeredTime = new Date().getTime();
+    return connections;
+  }
+
+  let connection = connections.find(c => c.url && c.url == url);
   if (connection) {
     console.warn(`same url connection '${connection.id}' exists.. skipping '${id}'..`);
     return connections;
   }
 
-  connection = connections.find((c) => c.id === id || c.url === url);
   const newExpiry = new Date().getTime() + 10000;
-
+  connection = connections.find((c) => c.id === id && c.url === url && c.registeredTime);
   if (connection) {
     connection.expiry = newExpiry;
-  } else {
-    connections.push({
-      id: id,
-      url: url,
-      expiry: newExpiry,
-      registeredTime: new Date().getTime(),
-    });
+    return connections;
   }
+
+  console.log(`..adding new connection ${id}(${url})`);
+  connections.push({
+    id: id,
+    url: url,
+    expiry: newExpiry,
+    registeredTime: new Date().getTime(),
+  });
 
   return connections;
 }
@@ -53,7 +65,7 @@ export function startSync() {
       return;
     }
 
-    console.log(`updating connections for sever '${env.SERVER_ID}'..`);
+    console.log(`updating connections for sever '${env.SERVER_ID}(${env.SERVER_URL})'..`);
     _extendConnections(env.SERVER_ID, env.SERVER_URL);
 
     _sync.isRunning = false;

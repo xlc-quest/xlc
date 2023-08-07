@@ -2,7 +2,7 @@ import axios from "axios";
 import { Connection, Transaction, transactions } from "../models";
 import * as con from "./connections";
 import * as crypto from 'crypto'
-import * as configs from '../env';
+import * as env from '../env';
 
 const _sync = {
   isRunning: false
@@ -26,16 +26,16 @@ function _updateInfluence(c: Connection) {
   const connectionAge = (now - c.registeredTime)/1000;
   const weight = (1/con.connections.length);
   const serverAge = (now - startTime)/1000;
-  c.influence = (weight + (weight * connectionAge/serverAge))/2;
+  c.influence = connectionAge > serverAge ? weight : (weight + (weight * connectionAge/serverAge))/2;
 
-  if (c.id != configs.CONNECTION_SERVER_ID && c.id != '@root' && c.id != configs.SERVER_ID && connectionAge > 10)
+  if (c.id != env.CONNECTION_SERVER_ID && c.id != '@root' && c.id != env.SERVER_ID && connectionAge > 10)
   {
-    const recentRewardTx = transactions.find((t) => t.from == configs.SERVER_ID && t.to == c.id && t.time > now - 10000);
+    const recentRewardTx = transactions.find((t) => t.from == env.SERVER_ID && t.to == c.id && t.time > now - 10000);
     if (!recentRewardTx) {
       const reward = .0001;
-      // console.log(`${c.id}\
-      //   \nweight: ${weight}, serverAge: ${serverAge}s, connectionAge: ${connectionAge}s, \
-      //   \nconnectionWeight: ${connectionAge / serverAge}, influence: ${influence.toFixed(1)}`);
+      console.log(`${c.id}\
+        \nweight: ${weight}, serverAge: ${serverAge}s, connectionAge: ${connectionAge}s, \
+        \nconnectionWeight: ${connectionAge / serverAge}, influence: ${c.influence.toFixed(1)}`);
       console.log(`${c.id} influence ${(c.influence*100).toFixed(1)}%`);
       const prob = .1 + c.influence;
 
@@ -44,7 +44,7 @@ function _updateInfluence(c: Connection) {
 
         transactions.push({
           id: crypto.randomUUID(),
-          from: configs.SERVER_ID,
+          from: env.SERVER_ID,
           to: c.id,
           amount: reward,
           message: `connection reward strike at ${(prob*100).toFixed(1)}%`,
@@ -77,11 +77,11 @@ function _onSync() {
   const transactionsPromises: Promise<void>[] = [];
 
   con.connections.forEach(async (c) => {
-    if (!c.url || c.url == configs.SERVER_URL) return;
+    if (!c.url || c.url == env.SERVER_URL) return;
 
     console.log(`hadnling sync from ${c.id}(${c.url})..`);
     const connectionsPromise = axios
-      .get(`http://${c.url}/connections?id=${configs.SERVER_ID}&url=${configs.SERVER_URL}`)
+      .get(`http://${c.url}/connections?id=${env.SERVER_ID}&url=${env.SERVER_URL}`)
       .then((res) => {
         let peerConnections: Connection[] = res.data;
         peerConnections.forEach((pc) => {
@@ -101,7 +101,7 @@ function _onSync() {
     connectionsPromises.push(connectionsPromise);
     
     const transactionsPromise = axios
-      .get(`http://${c.url}/transactions?id=${configs.SERVER_ID}`)
+      .get(`http://${c.url}/transactions?id=${env.SERVER_ID}`)
       .then((res) => {
         let peerTransactions: Transaction[] = res.data;
         peerTransactions.forEach((pt) => {
@@ -161,22 +161,18 @@ function _onSync() {
   }
 }
 
-export function start() {
-  console.log(`setting up @connection server..`);
-  if (configs.SERVER_ID == configs.CONNECTION_SERVER_ID) {
-    console.log(`..locally at ${configs.SERVER_URL}..`);
-    con.connections[0].registeredTime = new Date().getTime();
-  } else {
-    console.log(`..remote from ${con.connections[0].url}/connections?id=${configs.SERVER_ID}&url=${configs.SERVER_URL}`);
-    axios.get(`${con.connections[0].url}/connections?id=${configs.SERVER_ID}&url=${configs.SERVER_URL}`)
-      .then((res) => {
-        const connection: Connection = res.data[0];
-        con.connections[0].registeredTime = connection.registeredTime;
-      }).catch(e => {
-        console.error(`failed to connect. please check @connections server`);
-        return;
-      });
-  }
+export function startSync() {
+  console.log(`setting up initial connections..`);
+
+  // TODO: loop through..
+  axios.get(`${con.connections[0].url}/connections?id=${env.SERVER_ID}&url=${env.SERVER_URL}`)
+  .then((res) => {
+    const connection: Connection = res.data[0];
+    con.connections[0].registeredTime = connection.registeredTime;
+  }).catch(e => {
+    console.error(`failed to connect. please check @connections server`);
+    return;
+  });
 
   // connection sync process
   con.startSync();
