@@ -33,10 +33,10 @@ function _updateInfluence(c: Connection) {
     const recentRewardTx = transactions.find((t) => t.from == env.SERVER_ID && t.to == c.id && t.time > now - 10000);
     if (!recentRewardTx) {
       const reward = .0001;
-      console.log(`${c.id}\
-        \nweight: ${weight}, serverAge: ${serverAge}s, connectionAge: ${connectionAge}s, \
-        \nconnectionWeight: ${connectionAge / serverAge}, influence: ${c.influence.toFixed(1)}`);
-      console.log(`${c.id} influence ${(c.influence*100).toFixed(1)}%`);
+      // console.log(`${c.id}\
+      //   \nweight: ${weight}, serverAge: ${serverAge}s, connectionAge: ${connectionAge}s, \
+      //   \nconnectionWeight: ${connectionAge / serverAge}, influence: ${c.influence.toFixed(1)}`);
+      // console.log(`${c.id} influence ${(c.influence*100).toFixed(1)}%`);
       const prob = .1 + c.influence;
 
       if (_isStrike(prob)) {
@@ -81,7 +81,7 @@ function _onSync() {
 
     console.log(`hadnling sync from ${c.id}(${c.url})..`);
     const connectionsPromise = axios
-      .get(`http://${c.url}/connections?id=${env.SERVER_ID}&url=${env.SERVER_URL}`)
+      .get(`${c.url}/connections?id=${env.SERVER_ID}&url=${env.SERVER_URL}`)
       .then((res) => {
         let peerConnections: Connection[] = res.data;
         peerConnections.forEach((pc) => {
@@ -96,12 +96,15 @@ function _onSync() {
           }
         });
       })
-      .catch((e) => {});
+      .catch((e) => {
+        console.log(e);
+        console.warn(`error thrown during GET ${c.url}/connections`);
+      });
 
     connectionsPromises.push(connectionsPromise);
     
     const transactionsPromise = axios
-      .get(`http://${c.url}/transactions?id=${env.SERVER_ID}`)
+      .get(`${c.url}/transactions?id=${env.SERVER_ID}`)
       .then((res) => {
         let peerTransactions: Transaction[] = res.data;
         peerTransactions.forEach((pt) => {
@@ -113,7 +116,10 @@ function _onSync() {
           }
         });
       })
-      .catch((e) => {});
+      .catch((e) => {
+        console.log(e);
+        console.warn(`error thrown during GET ${c.url}/connections`);
+      });
 
     transactionsPromises.push(transactionsPromise);
   });
@@ -136,9 +142,7 @@ function _onSync() {
   });
 
   Promise.all(transactionsPromises).then(() => {
-    console.log(
-      `..all peer transactions call loaded...${transactionsPromises.length}`
-    );
+    console.log(`..all peer transactions call loaded...${transactionsPromises.length}`);
 
     allPeerTransactions.forEach((pt) => {
       let t = transactions.find((t) => t.id == pt.id);

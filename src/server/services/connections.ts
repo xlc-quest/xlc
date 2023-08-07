@@ -18,15 +18,15 @@ export function _extendConnections(id: string, url?: string): Connection[] {
     return connections;
   }
 
-  if (id == env.CONNECTION_SERVER_ID && connections[0].url == env.SERVER_URL) {
-    console.log(`setting up the first @connections..`);
-    connections[0].registeredTime = new Date().getTime();
+  let connection = connections.find(c => c.id !== id && c.url && c.url == url);
+  if (connection) {
+    console.warn(`same url connection '${connection.id}' exists.. skipping '${id}'..`);
     return connections;
   }
 
-  let connection = connections.find(c => c.url && c.url == url);
-  if (connection) {
-    console.warn(`same url connection '${connection.id}' exists.. skipping '${id}'..`);
+  if (id == env.CONNECTION_SERVER_ID && connections[0].url == env.SERVER_URL) {
+    console.log(`setting up the first @connections..`);
+    connections[0].registeredTime = new Date().getTime();
     return connections;
   }
 
