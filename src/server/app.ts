@@ -1,6 +1,6 @@
 import * as express from 'express';
 import apiRouter from './routes';
-import * as configs from './configs';
+import * as configs from './env';
 import * as sync from './services/sync';
 
 const app = express();

@@ -2,7 +2,7 @@ import axios from "axios";
 import { Connection, Transaction, transactions } from "../models";
 import * as con from "./connections";
 import * as crypto from 'crypto'
-import * as configs from '../configs';
+import * as configs from '../env';
 
 const _sync = {
   isRunning: false
@@ -28,7 +28,7 @@ function _updateInfluence(c: Connection) {
   const serverAge = (now - startTime)/1000;
   c.influence = (weight + (weight * connectionAge/serverAge))/2;
 
-  if (c.id != configs.CONNECTIONS_SERVER_ID && c.id != '@root' && c.id != configs.SERVER_ID && connectionAge > 10)
+  if (c.id != configs.CONNECTION_SERVER_ID && c.id != '@root' && c.id != configs.SERVER_ID && connectionAge > 10)
   {
     const recentRewardTx = transactions.find((t) => t.from == configs.SERVER_ID && t.to == c.id && t.time > now - 10000);
     if (!recentRewardTx) {
@@ -70,11 +70,11 @@ function _onSync() {
     _updateInfluence(c);
   });
 
-  let allPeerConnections: Connection[] = [];
-  let connectionsPromises: Promise<void>[] = [];
+  const allPeerConnections: Connection[] = [];
+  const connectionsPromises: Promise<void>[] = [];
 
-  let allPeerTransactions: Transaction[] = [];
-  let transactionsPromises: Promise<void>[] = [];
+  const allPeerTransactions: Transaction[] = [];
+  const transactionsPromises: Promise<void>[] = [];
 
   con.connections.forEach(async (c) => {
     if (!c.url || c.url == configs.SERVER_URL) return;
@@ -162,15 +162,24 @@ function _onSync() {
 }
 
 export function start() {
-  con.start();
+  console.log(`setting up @connection server..`);
+  if (configs.SERVER_ID == configs.CONNECTION_SERVER_ID) {
+    console.log(`..locally at ${configs.SERVER_URL}..`);
+    con.connections[0].registeredTime = new Date().getTime();
+  } else {
+    console.log(`..remote from ${con.connections[0].url}/connections?id=${configs.SERVER_ID}&url=${configs.SERVER_URL}`);
+    axios.get(`${con.connections[0].url}/connections?id=${configs.SERVER_ID}&url=${configs.SERVER_URL}`)
+      .then((res) => {
+        const connection: Connection = res.data[0];
+        con.connections[0].registeredTime = connection.registeredTime;
+      }).catch(e => {
+        console.error(`failed to connect. please check @connections server`);
+        return;
+      });
+  }
 
   // connection sync process
-  axios.get(`http://${con.connections[0].url}/connections?id=${configs.SERVER_ID}&url=${configs.SERVER_URL}`)
-    .then((res) => {
-      const connection: Connection = res.data[0];
-      con.connections[0].registeredTime = connection.registeredTime;
-    }).catch(e => {
-    });
+  con.startSync();
 
   setInterval(() => {
     try {
