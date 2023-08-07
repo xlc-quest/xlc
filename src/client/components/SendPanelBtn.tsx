@@ -14,7 +14,7 @@ import {
 import { useBoolean, useId } from '@fluentui/react-hooks';
 import { ActionButton, DefaultButton, IconButton, PrimaryButton } from '@fluentui/react/lib/Button';
 import axios from 'axios';
-import { configs } from '../../configs';
+import { configs } from '../configs';
 import { client } from '../services/connections';
 
 export const SendCalloutBtn = (props: { refreshTransactionsAsync: Function }) => {
@@ -27,7 +27,7 @@ export const SendCalloutBtn = (props: { refreshTransactionsAsync: Function }) =>
     transaction.from = client.id;
     
     axios
-		.post(`${configs.url}/transactions?id=client`, transaction)
+		.post(`${configs.url}transactions?id=client`, transaction)
 		.then((res) => {
       props.refreshTransactionsAsync();
 		});

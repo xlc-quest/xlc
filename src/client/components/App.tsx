@@ -12,7 +12,7 @@ import { DefaultButton, IconButton, PrimaryButton } from '@fluentui/react/lib/Bu
 import axios from 'axios';
 import { useState, useEffect, Dispatch, createContext, useContext } from 'react';
 import { SendCalloutBtn } from './SendPanelBtn';
-import { configs } from '../../configs';
+import { configs } from '../configs';
 import * as connections from '../services/connections';
 import { SettingsDlgBtn } from './SettingsDlgBtn';
 
@@ -50,7 +50,7 @@ const App = (props: AppProps) => {
 
 	const refreshTransactionsAsync = () => {
 		axios
-		.get(`${configs.url}/transactions?id=client`)
+		.get(`${configs.url}transactions?id=client`)
 		.then((res) => {
 			if (res.data.length <= 0) return;
 			setTransactions((prevList) => [...res.data.reverse()]);

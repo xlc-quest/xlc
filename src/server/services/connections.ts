@@ -1,21 +1,19 @@
-import { configs } from "../../configs";
+import * as configs from '../configs';
 import { Connection } from "../models";
 
-export const CONNECTIONS_SERVER_ID = '@connections';
-export const PUBLIC_PORTS = ['3000', '80', '8080'];
-
-export const SERVER_PORT = process.env.PORT || process.argv[2] || PUBLIC_PORTS[0];
-export const SERVER_ID = PUBLIC_PORTS.includes(SERVER_PORT) ? CONNECTIONS_SERVER_ID : '@server:' + SERVER_PORT;
-  
 export const connections: Connection[] = [
   {
-    id: CONNECTIONS_SERVER_ID,
-    registeredTime: PUBLIC_PORTS.includes(SERVER_PORT) ? new Date().getTime() : undefined,
-    url: configs.url,
+    id: configs.CONNECTIONS_SERVER_ID,
+    registeredTime: configs.PUBLIC_PORTS.includes(configs.SERVER_PORT) ? new Date().getTime() : undefined,
+    url: configs.SERVER_URL,
   }
 ];
 
-export function addExtendConnections(id: string, url?: string): Connection[] {
+const _sync = {
+  isRunning: false
+}
+
+export function _extendConnections(id: string, url?: string): Connection[] {
   let connection = connections.find(c => c.url == url && c.id != id);
   if (connection) {
     console.warn(`same url connection '${connection.id}' exists.. skipping '${id}'..`);
@@ -39,11 +37,27 @@ export function addExtendConnections(id: string, url?: string): Connection[] {
   return connections;
 }
 
-export function removeInactiveConnections(now: number) {
-  let index = connections.findIndex((c) => c.id != CONNECTIONS_SERVER_ID && c.expiry && c.expiry < now);
+export function updateLocalConnections(now: number) {
+  let index = connections.findIndex((c) => c.id != configs.CONNECTIONS_SERVER_ID && c.expiry && c.expiry < now);
   while (index > -1) {
     console.log(`removing inactive connection... ${connections[index].id}`);
     connections.splice(index, 1);
-    index = connections.findIndex((c) => c.id != CONNECTIONS_SERVER_ID && c.expiry && c.expiry < now);
+    index = connections.findIndex((c) => c.id != configs.CONNECTIONS_SERVER_ID && c.expiry && c.expiry < now);
   }
+}
+
+export function start() {
+  _extendConnections(configs.SERVER_ID, configs.SERVER_URL);
+  setInterval(() => {
+    if (_sync.isRunning) {
+      console.log(`connections sync is already running.. skipping..`);
+      return;
+    }
+
+    console.log(`updating connections for sever '${configs.SERVER_ID}'..`);
+    _extendConnections(configs.SERVER_ID, configs.SERVER_URL);
+
+    _sync.isRunning = false;
+    console.log(`connections sync process completed.. waiting for next sync..`);
+  }, 4000);
 }

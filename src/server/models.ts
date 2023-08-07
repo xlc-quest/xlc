@@ -1,5 +1,3 @@
-import { configs } from "../configs";
-
 export interface Transaction {
     id: string;
     from: string;

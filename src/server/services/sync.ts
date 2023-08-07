@@ -1,71 +1,73 @@
 import axios from "axios";
-import { configs } from "../../configs";
 import { Connection, Transaction, transactions } from "../models";
 import * as con from "./connections";
+import * as crypto from 'crypto'
+import * as configs from '../configs';
 
-function isTrue(probability: number) {
+const _sync = {
+  isRunning: false
+}
+
+function _isStrike(probability: number) {
   return !!probability && Math.random() <= probability;
-};
+}
 
-// connection sync process
-axios.get(`http://${con.connections[0].url}/connections?id=${con.SERVER_ID}&url=${configs.url}`)
-  .then((res) => {
-    const connection: Connection = res.data[0];
-    con.connections[0].registeredTime = connection.registeredTime;
-  }).catch(e => {
-  });
-
-setInterval(() => {
-  console.log(`..connections: ${con.connections.length}.. next check in 5s..`);
-
-  const now = new Date().getTime();
-  con.removeInactiveConnections(now);
-
+function _updateInfluence(c: Connection) {
   const startTime = con.connections[0].registeredTime;
   if (!startTime) {
-    console.warn(`server start time not set yet..`);
+    console.warn(`connection server start time not set.. skipping..`);
+    _sync.isRunning = false;
     return;
   }
 
-  con.connections.forEach(c => {
-    if (!c.registeredTime) return;
+  const now = new Date().getTime();
+  if (!c.registeredTime) return;
 
-    const connectionAge = (now - c.registeredTime)/1000;
-    const weight = (1/con.connections.length);
-    const serverAge = (now - startTime)/1000;
-    c.influence = (weight + (weight * connectionAge/serverAge))/2;
+  const connectionAge = (now - c.registeredTime)/1000;
+  const weight = (1/con.connections.length);
+  const serverAge = (now - startTime)/1000;
+  c.influence = (weight + (weight * connectionAge/serverAge))/2;
 
-    if (c.id != con.CONNECTIONS_SERVER_ID && c.id != '@root' && c.id != con.SERVER_ID && connectionAge > 10)
-    {
-      // console.log(`Connection age bonus to be implemented.. ${connectionAge}s`);
-      const recentRewardTx = transactions.find((t) => t.from == con.SERVER_ID && t.to == c.id && t.time > now - 10000);
-      if (!recentRewardTx) {
-        const reward = .0001;
+  if (c.id != configs.CONNECTIONS_SERVER_ID && c.id != '@root' && c.id != configs.SERVER_ID && connectionAge > 10)
+  {
+    const recentRewardTx = transactions.find((t) => t.from == configs.SERVER_ID && t.to == c.id && t.time > now - 10000);
+    if (!recentRewardTx) {
+      const reward = .0001;
+      // console.log(`${c.id}\
+      //   \nweight: ${weight}, serverAge: ${serverAge}s, connectionAge: ${connectionAge}s, \
+      //   \nconnectionWeight: ${connectionAge / serverAge}, influence: ${influence.toFixed(1)}`);
+      console.log(`${c.id} influence ${(c.influence*100).toFixed(1)}%`);
+      const prob = .1 + c.influence;
 
-        // console.log(`${c.id}\
-        //   \nweight: ${weight}, serverAge: ${serverAge}s, connectionAge: ${connectionAge}s, \
-        //   \nconnectionWeight: ${connectionAge / serverAge}, influence: ${influence.toFixed(1)}`);
+      if (_isStrike(prob)) {
+        console.log(`!!*#*#*STRIKE*#*#*!!`);
 
-        console.log(`${c.id} influence ${(c.influence*100).toFixed(1)}%`);
-        //const weightedProb = .49 + connectionAge/100000; // TODO: revisit algorithm
-        //const prob = weightedProb > .5 ? .5 : weightedProb;
-        const prob = .1 + c.influence;
-
-        // console.log(`Getting reward of x$${reward} with probability of ${(probability*100).toFixed(1)}%`);
-        if (isTrue(prob)) {
-          console.log(`!!*#*#*STRIKE*#*#*!!`);
-
-          transactions.push({
-            id: crypto.randomUUID(),
-            from: con.SERVER_ID,
-            to: c.id,
-            amount: reward,
-            message: `connection reward strike at ${(prob*100).toFixed(1)}%`,
-            time: new Date().getTime()
-          });
-        }
+        transactions.push({
+          id: crypto.randomUUID(),
+          from: configs.SERVER_ID,
+          to: c.id,
+          amount: reward,
+          message: `connection reward strike at ${(prob*100).toFixed(1)}%`,
+          time: new Date().getTime()
+        });
       }
     }
+  }
+}
+
+function _onSync() {
+  if (_sync.isRunning) {
+    console.log(`full sync is already running.. skipping..`);
+    return;
+  }
+
+  _sync.isRunning = true;
+  const now = new Date().getTime();
+  con.updateLocalConnections(now);
+
+  console.log(`starting full sync on connections: ${con.connections.length}..`);  
+  con.connections.forEach(c => {
+    _updateInfluence(c);
   });
 
   let allPeerConnections: Connection[] = [];
@@ -75,11 +77,11 @@ setInterval(() => {
   let transactionsPromises: Promise<void>[] = [];
 
   con.connections.forEach(async (c) => {
-    if (!c.url || c.url == configs.url) return;
+    if (!c.url || c.url == configs.SERVER_URL) return;
 
     console.log(`hadnling sync from ${c.id}(${c.url})..`);
     const connectionsPromise = axios
-      .get(`http://${c.url}/connections?id=${con.SERVER_ID}&url=${configs.url}`)
+      .get(`http://${c.url}/connections?id=${configs.SERVER_ID}&url=${configs.SERVER_URL}`)
       .then((res) => {
         let peerConnections: Connection[] = res.data;
         peerConnections.forEach((pc) => {
@@ -99,7 +101,7 @@ setInterval(() => {
     connectionsPromises.push(connectionsPromise);
     
     const transactionsPromise = axios
-      .get(`http://${c.url}/transactions?id=${con.SERVER_ID}`)
+      .get(`http://${c.url}/transactions?id=${configs.SERVER_ID}`)
       .then((res) => {
         let peerTransactions: Transaction[] = res.data;
         peerTransactions.forEach((pt) => {
@@ -130,7 +132,7 @@ setInterval(() => {
       }
     });
 
-    con.removeInactiveConnections(now);
+    con.updateLocalConnections(now);
   });
 
   Promise.all(transactionsPromises).then(() => {
@@ -147,4 +149,36 @@ setInterval(() => {
       }
     });
   });
-}, 5000);
+
+  if (connectionsPromises.length > 0 || transactionsPromises.length > 0) {
+    Promise.all([connectionsPromises, transactionsPromises]).finally(() => {
+      _sync.isRunning = false;
+      console.log(`full sync completed for ${connectionsPromises.length} connections.. waiting for next sync..`);
+    })
+  } else {
+    _sync.isRunning = false;
+    console.log(`full sync completed without connections.. waiting for next sync..`);
+  }
+}
+
+export function start() {
+  con.start();
+
+  // connection sync process
+  axios.get(`http://${con.connections[0].url}/connections?id=${configs.SERVER_ID}&url=${configs.SERVER_URL}`)
+    .then((res) => {
+      const connection: Connection = res.data[0];
+      con.connections[0].registeredTime = connection.registeredTime;
+    }).catch(e => {
+    });
+
+  setInterval(() => {
+    try {
+      _onSync();
+    } catch (e) {
+      console.log(e);
+      _sync.isRunning = false;
+      console.warn(`full sync crashed with error.. waiting for next sync..`);
+    };
+  }, 5000);
+}
