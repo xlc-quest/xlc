@@ -172,7 +172,7 @@ export function startSync() {
   axios.get(`${con.connections[0].url}/connections?id=${env.SERVER_ID}&url=${env.SERVER_URL}`)
   .then((res) => {
     const connection: Connection = res.data[0];
-    con.connections[0].registeredTime = connection.registeredTime;
+    con.connections[0].registeredTime = connection.registeredTime || new Date().getTime();
   }).catch(e => {
     console.error(`failed to connect. please check @connections server`);
     return;
