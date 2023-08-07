@@ -2,6 +2,7 @@ import * as express from 'express';
 import { Transaction } from './models';
 import * as models from './models';
 import * as crypto from 'crypto';
+import { addExtendConnections } from './services/connections';
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ router.get('/api/hello', (req, res, next) => {
 
 router.get('/connections', (req, res) => {
     res.status(200).json(
-        models.addExtendConnections(
+        addExtendConnections(
           req.query.id ? req.query.id.toString() : `ANN${new Date().getTime()}`,
           req.query.url ? req.query.url.toString() : undefined
         )
