@@ -4,7 +4,7 @@ import { Connection } from "../models";
 export const connections: Connection[] = [
   {
     id: env.CONNECTION_SERVER_ID,
-    url: env.CONNECTION_SERVER_URLS[1],
+    url: env.CONNECTION_SERVER_URLS[0],
   }
 ];
 
