@@ -26,7 +26,7 @@ export function _extendConnections(id: string, url?: string): Connection[] {
 
   if (id == env.CONNECTION_SERVER_ID && connections[0].url == env.SERVER_URL) {
     console.log(`setting up the first @connections..`);
-    connections[0].registeredTime = new Date().getTime();
+    connections[0].registeredTime = connections[0].registeredTime || new Date().getTime();
     return connections;
   }
 

@@ -160,7 +160,12 @@ function _onSync() {
       _sync.isRunning = false;
       console.log(`full sync completed for ${connectionsPromises.length} connections.. ${transactions.length} txs..`);
 
-      //console.log()''
+      let dataPath = `./public/transactions/${con.connections[0].registeredTime}`;
+      if (!fs.existsSync(dataPath)){
+          fs.mkdirSync(dataPath, { recursive: true });
+          //fs.writeFileSync()
+      }
+      
     })
   } else {
     _sync.isRunning = false;
