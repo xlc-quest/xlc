@@ -1,4 +1,4 @@
-const IS_CONNECTION_SERVER = false;
+const IS_CONNECTION_SERVER = true;
 
 export const CONNECTION_SERVER_ID = '@connections';
 export const CONNECTION_SERVER_URLS = ['https://xlc.quest', 'http://localhost:3000'];
