@@ -3,6 +3,7 @@ import { Connection, Transaction, transactions } from "../models";
 import * as con from "./connections";
 import * as crypto from 'crypto'
 import * as env from '../env';
+import * as fs from 'fs';
 
 const _sync = {
   isRunning: false
@@ -157,7 +158,9 @@ function _onSync() {
   if (connectionsPromises.length > 0 || transactionsPromises.length > 0) {
     Promise.all([connectionsPromises, transactionsPromises]).finally(() => {
       _sync.isRunning = false;
-      console.log(`full sync completed for ${connectionsPromises.length} connections.. waiting for next sync..`);
+      console.log(`full sync completed for ${connectionsPromises.length} connections.. ${transactions.length} txs..`);
+
+      //console.log()''
     })
   } else {
     _sync.isRunning = false;

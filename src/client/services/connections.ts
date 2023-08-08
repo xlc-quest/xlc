@@ -73,7 +73,7 @@ export function start(setClientFunc?: Function) {
             client.connections = res.data;
             setClient({...client});
         });
-    }, 3000);
+    }, 4000);
 
 /***
     ########################### TEST CODE ###############################

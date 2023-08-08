@@ -19,7 +19,18 @@ router.get('/connections', (req, res) => {
 });
   
 router.get('/transactions', (req, res) => {
-    res.status(200).json(models.transactions);
+    let filteredTxs = models.transactions.filter(t => true); // TODO
+    if (req.query.from) {
+        const from = Number(req.query.from);
+        filteredTxs = filteredTxs.filter(t => from <= t.time);
+    }
+
+    if (req.query.to) {
+        const to = Number(req.query.to);
+        filteredTxs = filteredTxs.filter(t => t.time <= to);
+    }
+
+    return res.status(200).json(filteredTxs);
 });
   
 router.post('/transactions', (req, res) => {
