@@ -104,8 +104,11 @@ function _onSync() {
 
     connectionsPromises.push(connectionsPromise);
     
+    const transactionsUrl = `${c.url}/transactions?id=${env.SERVER_ID}${transactions.length ?
+      '&from='+transactions[transactions.length-1].time : ''}`;
+
     const transactionsPromise = axios
-      .get(`${c.url}/transactions?id=${env.SERVER_ID}`)
+      .get(transactionsUrl)
       .then((res) => {
         let peerTransactions: Transaction[] = res.data;
         peerTransactions.forEach((pt) => {
@@ -143,7 +146,7 @@ function _onSync() {
   });
 
   Promise.all(transactionsPromises).then(() => {
-    console.log(`..all peer transactions call loaded...${transactionsPromises.length}`);
+    console.log(`..processing ${allPeerTransactions.length} new peer transactions..`);
 
     allPeerTransactions.forEach((pt) => {
       let t = transactions.find((t) => t.id == pt.id);
@@ -160,12 +163,34 @@ function _onSync() {
       _sync.isRunning = false;
       console.log(`full sync completed for ${connectionsPromises.length} connections.. ${transactions.length} txs..`);
 
-      let dataPath = `./public/transactions/${con.connections[0].registeredTime}`;
-      if (!fs.existsSync(dataPath)){
-          fs.mkdirSync(dataPath, { recursive: true });
-          //fs.writeFileSync()
+      if (!transactions.length) {
+        console.log(`no transactions to proceed.. skipping..`)
+        return;
       }
+
+      const lastTx = transactions[transactions.length-1];
+      const dataRoot = `./public/transactions/${con.connections[0].registeredTime}`;
       
+      if (!fs.existsSync(dataRoot)){
+        fs.mkdirSync(dataRoot, { recursive: true });
+      } else {
+        const txFiles = fs.readdirSync(dataRoot);
+        let lastTxSyncTime = txFiles.reduce((lastTxTime, t) =>  {
+           const txTime = Number(t.split('-')[1]);
+           return lastTxTime > txTime ? lastTxTime : txTime;
+        }, 0);
+
+        lastTxSyncTime = lastTxSyncTime > 0 ? lastTxSyncTime : transactions[0].time;
+
+        if (now - lastTxSyncTime > 3600000) {
+          const dataTime = (now - lastTxSyncTime) / 1000 / 60; // in min
+          const dataPath = `${dataRoot}/${lastTxSyncTime}-${now}-${dataTime.toFixed(1)}m.json`;
+          console.log(`storing transactions every 60s.. ${dataPath}`);
+          
+          fs.writeFile(dataPath, JSON.stringify(transactions.filter(t => t.time >= lastTxSyncTime)), "utf8", () => {
+          });
+        }
+      }
     })
   } else {
     _sync.isRunning = false;
