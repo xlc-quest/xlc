@@ -77,10 +77,11 @@ const App = (props: AppProps) => {
 			<h1 style={{ fontSize:'24px', lineHeight:'24px', textAlign:'right', margin: 0, padding: 0, color: NeutralColors.gray120 }}>..xlc</h1>
 			<Stack horizontal horizontalAlign='end' style={{color:'gray'}}>
 				<Text size={100}>..<span style={{color: 'violet'}}>{client.ip}</span></Text>
-				<Text size={100}><span style={client.id == '@loading..' ? {color: 'gray'} : {color: 'purple'}}>{client.id}</span></Text>
+				<Text size={100}><span style={client.id == '@loading..' ? {color: 'gray'} : {color: 'purple', fontWeight: 'bold'}}>{client.id}</span></Text>
 				<Text size={100}>..connected to <span style={client.connections?.length > 1 ? {fontWeight: 'bold', color: 'green'} : {fontWeight: 'normal', color: 'gray'}}>
-					{client.connections?.length > 0 ? client.connections[0].url: 'loading'}/{client.connections?.length}</span>..
+					{client.connections?.length > 0 ? client.connections[0].url: 'loading'}/{client.connections?.length}</span>
 				</Text>
+				<Text size={100}>..with..<span style={{color: 'orange', fontWeight: 'bold'}}>{client.influence ? (client.influence * 100).toFixed(2) : '0.00'}%</span> influence..</Text>
 			</Stack>
 			<Stack horizontal horizontalAlign='end'>
 				<Text size={900}><small>x$</small>{client.balance.toFixed(4)}</Text>
@@ -93,6 +94,7 @@ const App = (props: AppProps) => {
 			<Stack horizontal horizontalAlign='end'>
 			{ transactions.length > 0 ? (
 				<div style={{width:'100%'}}>
+				<Text size={200} style={{color:'gray'}}>showing {transactions.length+'/'+transactions.length} transactions..</Text>
 				<DetailsList
 					items={transactions}
 					columns={columns}
@@ -102,7 +104,7 @@ const App = (props: AppProps) => {
 					ariaLabelForSelectAllCheckbox="Toggle selection for all items"
 					checkButtonAriaLabel="select row"
 				/></div>) : (
-					<Text>no transactions to display</Text>
+					<Text size={200} style={{color:'gray'}}>loading.. hit 'refresh' if it persists..</Text>
 				)
 			}
 			</Stack>

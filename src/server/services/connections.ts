@@ -4,7 +4,7 @@ import { Connection } from "../models";
 export const connections: Connection[] = [
   {
     id: env.CONNECTION_SERVER_ID,
-    url: env.CONNECTION_SERVER_URLS[0],
+    url: env.CONNECTION_SERVER_URLS[1],
   }
 ];
 
@@ -24,13 +24,19 @@ export function _extendConnections(id: string, url?: string): Connection[] {
     return connections;
   }
 
+  const now = new Date().getTime();
   if (id == env.CONNECTION_SERVER_ID && connections[0].url == env.SERVER_URL) {
-    console.log(`setting up the first @connections..`);
-    connections[0].registeredTime = connections[0].registeredTime || new Date().getTime();
+    console.log(`setting up the first @connections.. without expiry`);
+    connections[0].registeredTime = connections[0].registeredTime || now;
     return connections;
   }
 
-  const newExpiry = new Date().getTime() + 10000;
+  if (id == env.CONNECTION_SERVER_ID && connections[0].url != env.SERVER_URL) {
+    console.log(`@connections already exists.. updating name..`);
+    id = `@connections-${now}`;
+  }
+
+  const newExpiry = now + 10000;
   connection = connections.find((c) => c.id === id && c.url === url && c.registeredTime);
   if (connection) {
     connection.expiry = newExpiry;
@@ -42,7 +48,7 @@ export function _extendConnections(id: string, url?: string): Connection[] {
     id: id,
     url: url,
     expiry: newExpiry,
-    registeredTime: new Date().getTime(),
+    registeredTime: now,
   });
 
   return connections;

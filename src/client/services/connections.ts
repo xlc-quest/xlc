@@ -8,6 +8,7 @@ export const client = {
     id: ID_LOADING_PLACEHOLDER,
     ip: '..',
     balance: 0,
+    influence: 0,
     connections: [{
         id: CONNECTIONS_SERVER_ID,
         url: 'loading',
@@ -69,8 +70,12 @@ export function start(setClientFunc?: Function) {
     setInterval(() => {
         axios.get(`${configs.url}connections?id=${client.id}`, {}).then((res) => {
             if (res.data.length <= 0) return;
-
             client.connections = res.data;
+            const c = res.data.find((c: {id: string }) => c.id == client.id);
+            client.influence = c.influence;
+
+            console.log(c);
+            console.log(client);
             setClient({...client});
         });
     }, 4000);

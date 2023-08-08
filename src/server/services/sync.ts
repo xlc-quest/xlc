@@ -6,7 +6,8 @@ import * as env from '../env';
 import * as fs from 'fs';
 
 const _sync = {
-  isRunning: false
+  isRunning: false,
+  lasTxSyncTime: <{ [key: string]: number }>{}
 }
 
 function _isStrike(probability: number) {
@@ -33,7 +34,7 @@ function _updateInfluence(c: Connection) {
   {
     const recentRewardTx = transactions.find((t) => t.from == env.SERVER_ID && t.to == c.id && t.time > now - 10000);
     if (!recentRewardTx) {
-      const reward = .0001;
+      const reward = Math.floor(Math.random() * 10)/10000;
       // console.log(`${c.id}\
       //   \nweight: ${weight}, serverAge: ${serverAge}s, connectionAge: ${connectionAge}s, \
       //   \nconnectionWeight: ${connectionAge / serverAge}, influence: ${c.influence.toFixed(1)}`);
@@ -47,7 +48,7 @@ function _updateInfluence(c: Connection) {
           id: crypto.randomUUID(),
           from: env.SERVER_ID,
           to: c.id,
-          amount: reward,
+          amount: reward > 0 ? reward : .0001,
           message: `connection reward strike at ${(prob*100).toFixed(1)}%`,
           time: new Date().getTime()
         });
@@ -104,8 +105,10 @@ function _onSync() {
 
     connectionsPromises.push(connectionsPromise);
     
-    const transactionsUrl = `${c.url}/transactions?id=${env.SERVER_ID}${transactions.length ?
-      '&from='+transactions[transactions.length-1].time : ''}`;
+    const transactionsUrl = `${c.url}/transactions?id=${env.SERVER_ID}${transactions.length && _sync.lasTxSyncTime[c.id] ?
+      '&from='+(_sync.lasTxSyncTime[c.id]-60000) : ''}`;
+
+    console.log(transactionsUrl);
 
     const transactionsPromise = axios
       .get(transactionsUrl)
@@ -147,15 +150,20 @@ function _onSync() {
 
   Promise.all(transactionsPromises).then(() => {
     console.log(`..processing ${allPeerTransactions.length} new peer transactions..`);
+    let count = 0;
 
     allPeerTransactions.forEach((pt) => {
       let t = transactions.find((t) => t.id == pt.id);
       if (!t) {
         transactions.push(pt);
+        count++;
       } else {
         // throw error if mismatch
       }
     });
+
+    console.log(`..added ${count} new transactions..`);
+    transactions.sort((ta, tb) => (ta.time < tb.time ? -1 : 1)); // TODO: implement sorted list
   });
 
   if (connectionsPromises.length > 0 || transactionsPromises.length > 0) {
@@ -163,34 +171,40 @@ function _onSync() {
       _sync.isRunning = false;
       console.log(`full sync completed for ${connectionsPromises.length} connections.. ${transactions.length} txs..`);
 
+      if (transactionsPromises.length > 0) {
+        allPeerConnections.forEach(c => {
+          _sync.lasTxSyncTime[c.id] = now;
+        });
+      }
+
       if (!transactions.length) {
         console.log(`no transactions to proceed.. skipping..`)
         return;
       }
 
       const lastTx = transactions[transactions.length-1];
-      const dataRoot = `./public/transactions/${con.connections[0].registeredTime}`;
+      const dataRoot = `./data/transactions/${con.connections[0].registeredTime}`;
       
-      if (!fs.existsSync(dataRoot)){
-        fs.mkdirSync(dataRoot, { recursive: true });
-      } else {
-        const txFiles = fs.readdirSync(dataRoot);
-        let lastTxSyncTime = txFiles.reduce((lastTxTime, t) =>  {
-           const txTime = Number(t.split('-')[1]);
-           return lastTxTime > txTime ? lastTxTime : txTime;
-        }, 0);
+      // if (!fs.existsSync(dataRoot)){
+      //   fs.mkdirSync(dataRoot, { recursive: true });
+      // } else {
+      //   const txFiles = fs.readdirSync(dataRoot);
+      //   let lastTxSyncTime = txFiles.reduce((lastTxTime, t) =>  {
+      //      const txTime = Number(t.split('-')[1]);
+      //      return lastTxTime > txTime ? lastTxTime : txTime;
+      //   }, 0);
 
-        lastTxSyncTime = lastTxSyncTime > 0 ? lastTxSyncTime : transactions[0].time;
+      //   lastTxSyncTime = lastTxSyncTime > 0 ? lastTxSyncTime : transactions[0].time;
 
-        if (now - lastTxSyncTime > 3600000) {
-          const dataTime = (now - lastTxSyncTime) / 1000 / 60; // in min
-          const dataPath = `${dataRoot}/${lastTxSyncTime}-${now}-${dataTime.toFixed(1)}m.json`;
-          console.log(`storing transactions every 60s.. ${dataPath}`);
+      //   if (now - lastTxSyncTime > 120000) {
+      //     const dataTime = (now - lastTxSyncTime) / 1000 / 60; // in min
+      //     const dataPath = `${dataRoot}/${lastTxSyncTime}-${now}-${dataTime.toFixed(1)}m.json`;
+      //     console.log(`storing transactions every 120s.. ${dataPath}`);
           
-          fs.writeFile(dataPath, JSON.stringify(transactions.filter(t => t.time >= lastTxSyncTime)), "utf8", () => {
-          });
-        }
-      }
+      //     fs.writeFile(dataPath, JSON.stringify(transactions.filter(t => t.time >= lastTxSyncTime)), "utf8", () => {
+      //     });
+      //   }
+      // }
     })
   } else {
     _sync.isRunning = false;
@@ -200,8 +214,8 @@ function _onSync() {
 
 export function startSync() {
   console.log(`setting up initial connections..`);
+  const now = new Date().getTime();
 
-  // TODO: loop through..
   axios.get(`${con.connections[0].url}/connections?id=${env.SERVER_ID}&url=${env.SERVER_URL}`)
   .then((res) => {
     const connection: Connection = res.data[0];
