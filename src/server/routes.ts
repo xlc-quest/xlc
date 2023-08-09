@@ -64,9 +64,10 @@ router.post('/transactions', (req, res) => {
           console.log(e);
           console.error(`failed to post a transaction from:${env.SERVER_ID} to ${connections[0].id}..`);
         });
+    } else {
+        models.transactions.push(transaction);
     }
 
-    models.transactions.push(transaction);
     res.status(200).json(models.transactions);
 });
 
