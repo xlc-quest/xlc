@@ -27,7 +27,7 @@ export const SendCalloutBtn = (props: { refreshTransactionsAsync: Function }) =>
     transaction.from = client.id;
     
     axios
-		.post(`${configs.url}transactions?id=client`, transaction)
+		.post(`${configs.serverUrl}/transactions?id=client`, transaction)
 		.then((res) => {
       props.refreshTransactionsAsync();
 		});

@@ -1,3 +1,4 @@
 export const configs = {
-    url: window.location.href
-};
+    serverId: '',
+    serverUrl: ''
+}

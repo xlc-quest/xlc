@@ -33,7 +33,7 @@ export function _extendConnections(id: string, url?: string): Connection[] {
 
   if (id == env.CONNECTION_SERVER_ID && connections[0].url != env.SERVER_URL) {
     console.log(`@connections already exists.. updating name..`);
-    id = `@connections-${now}`;
+    id = `@connections${now}`;
   }
 
   const newExpiry = now + 10000;

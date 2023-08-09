@@ -1,7 +1,9 @@
 import * as express from 'express';
 import * as models from './models';
 import * as crypto from 'crypto';
-import { _extendConnections } from './services/connections';
+import { _extendConnections, connections } from './services/connections';
+import * as env from './env';
+import axios from 'axios';
 
 const router = express.Router();
 
@@ -39,7 +41,6 @@ router.post('/transactions', (req, res) => {
         !req.body.to ||
         (!req.body.amount && !req.body.message)
     ) {
-        console.log(req.body);
         res.status(400).json({ error: `Invalid request body sent.` });
         return;
     }
@@ -53,8 +54,19 @@ router.post('/transactions', (req, res) => {
         time: new Date().getTime()
     };
 
-    models.transactions.push(transaction);
+    if (env.SERVER_ID != env.CONNECTION_SERVER_ID) {
+        axios
+        .post(`${connections[0].url}/transactions?id=client`, transaction)
+        .then((res) => {
+          console.log(`posted a transaction from:${env.SERVER_ID} to ${connections[0].id}..`);
+        })
+        .catch((e) => {
+          console.log(e);
+          console.error(`failed to post a transaction from:${env.SERVER_ID} to ${connections[0].id}..`);
+        });
+    }
 
+    models.transactions.push(transaction);
     res.status(200).json(models.transactions);
 });
 

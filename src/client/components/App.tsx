@@ -50,7 +50,7 @@ const App = (props: AppProps) => {
 
 	const refreshTransactionsAsync = () => {
 		axios
-		.get(`${configs.url}transactions?id=client`)
+		.get(`${configs.serverUrl}/transactions?id=client`)
 		.then((res) => {
 			if (res.data.length <= 0) return;
 			setTransactions((prevList) => [...res.data.reverse()]);
@@ -81,7 +81,9 @@ const App = (props: AppProps) => {
 				<Text size={100}>..connected to <span style={client.connections?.length > 1 ? {fontWeight: 'bold', color: 'green'} : {fontWeight: 'normal', color: 'gray'}}>
 					{client.connections?.length > 0 ? client.connections[0].url: 'loading'}/{client.connections?.length}</span>
 				</Text>
-				<Text size={100}>..with..<span style={{color: 'orange', fontWeight: 'bold'}}>{client.influence ? (client.influence * 100).toFixed(2) : '0.00'}%</span> influence..</Text>
+			</Stack>
+			<Stack horizontal horizontalAlign='end' style={{color:'gray'}}>
+			<Text size={100}>..with..<span style={{color: 'orange', fontWeight: 'bold'}}>{client.influence ? (client.influence * 100).toFixed(2) : '0.00'}%</span> influence..</Text>
 			</Stack>
 			<Stack horizontal horizontalAlign='end'>
 				<Text size={900}><small>x$</small>{client.balance.toFixed(4)}</Text>

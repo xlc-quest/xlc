@@ -44,13 +44,19 @@ function _updateInfluence(c: Connection) {
       if (_isStrike(prob)) {
         console.log(`!!*#*#*STRIKE*#*#*!!`);
 
-        transactions.push({
-          id: crypto.randomUUID(),
+        axios
+        .post(`${con.connections[0].url}/transactions?id=client`, {
           from: env.SERVER_ID,
           to: c.id,
           amount: reward > 0 ? reward : .0001,
           message: `connection reward strike at ${(prob*100).toFixed(1)}%`,
-          time: new Date().getTime()
+        })
+        .then((res) => {
+          console.log(`posted a transaction from:${env.SERVER_ID} to ${c.id}..`);
+        })
+        .catch((e) => {
+          console.log(e);
+          console.error(`failed to post a transaction from:${env.SERVER_ID} to ${c.id}..`);
         });
       }
     }
@@ -107,8 +113,6 @@ function _onSync() {
     
     const transactionsUrl = `${c.url}/transactions?id=${env.SERVER_ID}${transactions.length && _sync.lasTxSyncTime[c.id] ?
       '&from='+(_sync.lasTxSyncTime[c.id]-60000) : ''}`;
-
-    console.log(transactionsUrl);
 
     const transactionsPromise = axios
       .get(transactionsUrl)
@@ -167,7 +171,7 @@ function _onSync() {
   });
 
   if (connectionsPromises.length > 0 || transactionsPromises.length > 0) {
-    Promise.all([connectionsPromises, transactionsPromises]).finally(() => {
+    Promise.all([...connectionsPromises, ...transactionsPromises]).finally(() => {
       _sync.isRunning = false;
       console.log(`full sync completed for ${connectionsPromises.length} connections.. ${transactions.length} txs..`);
 

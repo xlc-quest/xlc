@@ -51,7 +51,7 @@ export function start(setClientFunc?: Function) {
         return res.data;
     });
 
-    const connectionsPromise = axios.get(`${configs.url}connections?id=${client.id}`, {timeout: 1000}).then((res) => {
+    const connectionsPromise = axios.get(`${configs.serverUrl}/connections?id=${client.id}`, {timeout: 1000}).then((res) => {
         if (res.data.length <= 0) return;
         return res.data;
     }).catch(e => {
@@ -68,14 +68,11 @@ export function start(setClientFunc?: Function) {
     });
 
     setInterval(() => {
-        axios.get(`${configs.url}connections?id=${client.id}`, {}).then((res) => {
+        axios.get(`${configs.serverUrl}/connections?id=${client.id}`, {}).then((res) => {
             if (res.data.length <= 0) return;
             client.connections = res.data;
             const c = res.data.find((c: {id: string }) => c.id == client.id);
             client.influence = c.influence;
-
-            console.log(c);
-            console.log(client);
             setClient({...client});
         });
     }, 4000);
