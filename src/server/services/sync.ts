@@ -189,26 +189,27 @@ function _onSync() {
       const lastTx = transactions[transactions.length-1];
       const dataRoot = `./data/transactions/${con.connections[0].registeredTime}`;
       
-      // if (!fs.existsSync(dataRoot)){
-      //   fs.mkdirSync(dataRoot, { recursive: true });
-      // } else {
-      //   const txFiles = fs.readdirSync(dataRoot);
-      //   let lastTxSyncTime = txFiles.reduce((lastTxTime, t) =>  {
-      //      const txTime = Number(t.split('-')[1]);
-      //      return lastTxTime > txTime ? lastTxTime : txTime;
-      //   }, 0);
+      if (!fs.existsSync(dataRoot)){
+        fs.mkdirSync(dataRoot, { recursive: true });
+      } else {
+        const txFiles = fs.readdirSync(dataRoot);
+        let lastTxSyncTime = txFiles.reduce((lastTxTime, t) =>  {
+           const txTime = Number(t.split('-')[1]);
+           return lastTxTime > txTime ? lastTxTime : txTime;
+        }, 0);
 
-      //   lastTxSyncTime = lastTxSyncTime > 0 ? lastTxSyncTime : transactions[0].time;
+        lastTxSyncTime = lastTxSyncTime > 0 ? lastTxSyncTime : transactions[0].time;
 
-      //   if (now - lastTxSyncTime > 120000) {
-      //     const dataTime = (now - lastTxSyncTime) / 1000 / 60; // in min
-      //     const dataPath = `${dataRoot}/${lastTxSyncTime}-${now}-${dataTime.toFixed(1)}m.json`;
-      //     console.log(`storing transactions every 120s.. ${dataPath}`);
+        if (now - lastTxSyncTime > 120000) {
+          const txBlock = transactions.filter(t => t.time >= lastTxSyncTime);
+          const count = txBlock.length;
+          const dataPath = `${dataRoot}/${lastTxSyncTime}-${now}-${count}.json`;
+          console.log(`storing transactions every 120s.. ${dataPath}`);
           
-      //     fs.writeFile(dataPath, JSON.stringify(transactions.filter(t => t.time >= lastTxSyncTime)), "utf8", () => {
-      //     });
-      //   }
-      // }
+          fs.writeFile(dataPath, JSON.stringify(txBlock), "utf8", () => {
+          });
+        }
+      }
     })
   } else {
     _sync.isRunning = false;
