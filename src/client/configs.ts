@@ -1,4 +1,3 @@
 export const configs = {
-    serverId: '',
-    serverUrl: ''
+    serverUrl: window.location.origin
 }

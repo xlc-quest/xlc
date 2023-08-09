@@ -78,8 +78,10 @@ const App = (props: AppProps) => {
 			<Stack horizontal horizontalAlign='end' style={{color:'gray'}}>
 				<Text size={100}>..<span style={{color: 'violet'}}>{client.ip}</span></Text>
 				<Text size={100}><span style={client.id == '@loading..' ? {color: 'gray'} : {color: 'purple', fontWeight: 'bold'}}>{client.id}</span></Text>
-				<Text size={100}>..connected to <span style={client.connections?.length > 1 ? {fontWeight: 'bold', color: 'green'} : {fontWeight: 'normal', color: 'gray'}}>
-					{client.connections?.length > 0 ? configs.serverId : 'loading'}/{client.connections?.length}</span>
+				<Text size={100}>..connected to..
+					<span style={client.connections?.length > 1 ? {fontWeight: 'bold', color: 'green'} : {fontWeight: 'normal', color: 'gray'}}>
+					{client.connections?.length > 0 ? client.serverUrl : 'loading'}</span>..of..
+					<span style={{fontWeight: 'bold', color: 'blue'}}>{client.connections?.length}</span>
 				</Text>
 			</Stack>
 			<Stack horizontal horizontalAlign='end' style={{color:'gray'}}>

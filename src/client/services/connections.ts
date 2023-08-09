@@ -9,6 +9,7 @@ export const client = {
     ip: '..',
     balance: 0,
     influence: 0,
+    serverUrl: 'loading',
     connections: [{
         id: CONNECTIONS_SERVER_ID,
         url: 'loading',
@@ -53,6 +54,8 @@ export function start(setClientFunc?: Function) {
 
     const connectionsPromise = axios.get(`${configs.serverUrl}/connections?id=${client.id}`, {timeout: 1000}).then((res) => {
         if (res.data.length <= 0) return;
+        client.serverUrl = configs.serverUrl;
+        setClient({...client});
         return res.data;
     }).catch(e => {
         console.warn(`GET /connections ..error after 1s, trying localhost..`);
@@ -63,7 +66,6 @@ export function start(setClientFunc?: Function) {
         const [ip, c] = values;
         client.ip = ip;
         client.connections = c;
-
         setClient({...client});
     });
 
