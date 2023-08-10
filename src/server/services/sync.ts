@@ -6,8 +6,8 @@ import * as env from '../env';
 import * as fs from 'fs';
 
 const _sync = {
-  isRunning: false,
-  lasTxSyncTime: <{ [key: string]: number }>{}
+  isRunning: true,
+  lastTxSyncTime: <{ [key: string]: number }>{}
 }
 
 function _isStrike(probability: number) {
@@ -85,7 +85,7 @@ function _onSync() {
   const transactionsPromises: Promise<void>[] = [];
 
   con.connections.forEach(async (c) => {
-    if (!c.url || c.url == env.SERVER_URL) return;
+    if (!c.url || c.url == env.SERVER_URL || c.url.includes('localhost') || c.url.includes('127.0.0.1')) return;
 
     console.log(`hadnling sync from ${c.id}(${c.url})..`);
     const connectionsPromise = axios
@@ -111,8 +111,9 @@ function _onSync() {
 
     connectionsPromises.push(connectionsPromise);
     
-    const transactionsUrl = `${c.url}/transactions?id=${env.SERVER_ID}${transactions.length && _sync.lasTxSyncTime[c.id] ?
-      '&from='+(_sync.lasTxSyncTime[c.id]) : ''}`;
+    console.log(`last sync time of ${c.id}(${c.url}).. ${_sync.lastTxSyncTime[c.id]}`);
+    const transactionsUrl = `${c.url}/transactions?id=${env.SERVER_ID}${_sync.lastTxSyncTime[c.id] ?
+      '&from='+(_sync.lastTxSyncTime[c.id]) : ''}`;
 
     const transactionsPromise = axios
       .get(transactionsUrl)
@@ -178,7 +179,7 @@ function _onSync() {
 
       if (transactionsPromises.length > 0) {
         allPeerConnections.forEach(c => {
-          _sync.lasTxSyncTime[c.id] = now;
+          _sync.lastTxSyncTime[c.id] = now;
         });
       }
 
@@ -201,11 +202,11 @@ function _onSync() {
 
         lastTxSyncTime = lastTxSyncTime > 0 ? lastTxSyncTime : transactions[0].time;
 
-        if (now - lastTxSyncTime > 120000) {
+        if (now - lastTxSyncTime > 600000) {
           const txBlock = transactions.filter(t => t.time >= lastTxSyncTime);
           const count = txBlock.length;
           const dataPath = `${dataRoot}/${lastTxSyncTime}-${now}-${count}.json`;
-          console.log(`storing transactions every 120s.. ${dataPath}`);
+          console.log(`storing transactions every 600s.. ${dataPath}`);
           
           fs.writeFile(dataPath, JSON.stringify(txBlock), "utf8", () => {
           });
@@ -225,7 +226,24 @@ export function startSync() {
   axios.get(`${con.connections[0].url}/connections?id=${env.SERVER_ID}&url=${env.SERVER_URL}`)
   .then((res) => {
     const connection: Connection = res.data[0];
-    con.connections[0].registeredTime = connection.registeredTime || new Date().getTime();
+    con.connections[0].registeredTime = connection.registeredTime || now;
+
+
+    const dataRoot = `./data/transactions/${connection.registeredTime}`;
+    if (!fs.existsSync(dataRoot)){
+      fs.mkdirSync(dataRoot, { recursive: true });
+      _sync.isRunning = false;
+    } else {
+      const txFiles = fs.readdirSync(dataRoot);
+      let lastTxSyncTime = txFiles.reduce((lastTxTime, t) =>  {
+         const txTime = Number(t.split('-')[1]);
+         return lastTxTime > txTime ? lastTxTime : txTime;
+      }, 0);
+
+      lastTxSyncTime = lastTxSyncTime > 0 ? lastTxSyncTime : transactions[0].time;
+      _sync.lastTxSyncTime[connection.id] = lastTxSyncTime;
+      _sync.isRunning = false;
+    }
   }).catch(e => {
     console.error(`failed to connect. please check @connections server`);
     return;
