@@ -112,12 +112,13 @@ function _onSync() {
     connectionsPromises.push(connectionsPromise);
     
     const transactionsUrl = `${c.url}/transactions?id=${env.SERVER_ID}${transactions.length && _sync.lasTxSyncTime[c.id] ?
-      '&from='+(_sync.lasTxSyncTime[c.id]-60000) : ''}`;
+      '&from='+(_sync.lasTxSyncTime[c.id]) : ''}`;
 
     const transactionsPromise = axios
       .get(transactionsUrl)
       .then((res) => {
         let peerTransactions: Transaction[] = res.data;
+        console.log(`received ${peerTransactions.length} transactions..`);
         peerTransactions.forEach((pt) => {
           let apt = allPeerTransactions.find((apt) => pt.id == apt.id);
           if (!apt) {

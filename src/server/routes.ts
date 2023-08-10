@@ -7,10 +7,6 @@ import axios from 'axios';
 
 const router = express.Router();
 
-router.get('/api/hello', (req, res, next) => {
-    res.json('..xlc');
-});
-
 router.get('/connections', (req, res) => {
     res.status(200).json(
         _extendConnections(
