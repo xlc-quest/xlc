@@ -240,8 +240,11 @@ export function startSync() {
          return lastTxTime > txTime ? lastTxTime : txTime;
       }, 0);
 
-      const firstTxTime = transactions.length > 0 ? transactions[0].time : 0;
-      lastTxSyncTime = lastTxSyncTime > 0 ? lastTxSyncTime : firstTxTime;
+      for (let i=0; i<txFiles.length; i++) {
+        const txJson: Transaction[] = require(txFiles[i]);
+        transactions.push(...txJson);
+      }
+
       _sync.lastTxSyncTime[connection.id] = lastTxSyncTime;
       _sync.isRunning = false;
     }
