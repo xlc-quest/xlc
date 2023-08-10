@@ -45,7 +45,7 @@ function _updateInfluence(c: Connection) {
         console.log(`!!*#*#*STRIKE*#*#*!!`);
 
         axios
-        .post(`${con.connections[0].url}/transactions?id=client`, {
+        .post(`${con.connections[0].url}/transactions?id=${env.SERVER_ID}`, {
           from: env.SERVER_ID,
           to: c.id,
           amount: reward > 0 ? reward : .0001,
@@ -113,7 +113,7 @@ function _onSync() {
     
     console.log(`last sync time of ${c.id}(${c.url}).. ${_sync.lastTxSyncTime[c.id]}`);
     const transactionsUrl = `${c.url}/transactions?id=${env.SERVER_ID}${_sync.lastTxSyncTime[c.id] ?
-      '&from='+(_sync.lastTxSyncTime[c.id]) : ''}`;
+      '&from='+(_sync.lastTxSyncTime[c.id]) : ''}&all=true`;
 
     const transactionsPromise = axios
       .get(transactionsUrl)
@@ -248,6 +248,7 @@ export function startSync() {
         transactions.push(...txJson);
       }
 
+      console.log(`restored ${transactions.length} txs from ${txFiles.length} files..`);
       _sync.lastTxSyncTime[connection.id] = lastTxSyncTime;
       _sync.isRunning = false;
     }

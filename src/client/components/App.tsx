@@ -61,7 +61,7 @@ const App = (props: AppProps) => {
 
 	const refreshTransactionsAsync = () => {
 		axios
-		.get(`${configs.serverUrl}/transactions?id=${client.id}`)
+		.get(`${configs.serverUrl}/transactions?id=${client.id}&all=true`)
 		.then((res) => {
 			if (res.data.length <= 0) return;
 			connections.updateBalance(res.data);
