@@ -64,7 +64,7 @@ router.post('/transactions', (req, res) => {
         models.transactions.push(transaction);
     }
 
-    res.status(200).json(models.transactions);
+    res.status(200).json(transaction);
 });
 
 export default router;

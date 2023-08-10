@@ -52,11 +52,11 @@ function _updateInfluence(c: Connection) {
           message: `connection reward strike at ${(prob*100).toFixed(1)}%`,
         })
         .then((res) => {
-          console.log(`posted a transaction from:${env.SERVER_ID} to ${c.id}..`);
+          console.log(`posted a transaction from:${env.SERVER_ID} to ${con.connections[0].id}..`);
         })
         .catch((e) => {
           console.log(e);
-          console.error(`failed to post a transaction from:${env.SERVER_ID} to ${c.id}..`);
+          console.error(`failed to post a transaction from:${env.SERVER_ID} to ${con.connections[0].id}..`);
         });
       }
     }
