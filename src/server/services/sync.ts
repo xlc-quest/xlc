@@ -240,12 +240,15 @@ export function startSync() {
          return lastTxTime > txTime ? lastTxTime : txTime;
       }, 0);
 
-      lastTxSyncTime = lastTxSyncTime > 0 ? lastTxSyncTime : transactions[0].time;
+      const firstTxTime = transactions.length > 0 ? transactions[0].time : 0;
+      lastTxSyncTime = lastTxSyncTime > 0 ? lastTxSyncTime : firstTxTime;
       _sync.lastTxSyncTime[connection.id] = lastTxSyncTime;
       _sync.isRunning = false;
     }
   }).catch(e => {
+    console.log(e);
     console.error(`failed to connect. please check @connections server`);
+    _sync.isRunning = false;
     return;
   });
 
