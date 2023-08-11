@@ -15,7 +15,7 @@ import { useBoolean, useId } from '@fluentui/react-hooks';
 import { ActionButton, DefaultButton, IconButton, PrimaryButton } from '@fluentui/react/lib/Button';
 import axios from 'axios';
 import { configs } from '../configs';
-import { client } from '../services/connections';
+import { client, summary } from '../services/connections';
 
 export const SendCalloutBtn = (props: { refreshTransactionsAsync: Function }) => {
   const [isPanelVisible, { toggle: toggleIsPanelVisible }] = useBoolean(false);
@@ -47,7 +47,7 @@ export const SendCalloutBtn = (props: { refreshTransactionsAsync: Function }) =>
 
   return (
     <>
-      <PrimaryButton disabled={!(client.id == '@root' || client.balance >= 0.01)} iconProps={{iconName: 'Send'}} id={buttonId} onClick={toggleIsPanelVisible} text="send" />
+      <PrimaryButton disabled={!(client.id == '@root' || summary.balance >= 0.01)} iconProps={{iconName: 'Send'}} id={buttonId} onClick={toggleIsPanelVisible} text="send" />
       <Panel
         isOpen={isPanelVisible}
         role="alertdialog"

@@ -60,7 +60,7 @@ router.get('/transactions', (req, res) => {
 
         if (req.query.id) {
             const clientId = String(req.query.id);
-            filteredTxs = filteredTxs.filter(t => t.to == clientId || t.to == clientId);
+            filteredTxs = filteredTxs.filter(t => t.from == clientId || t.to == clientId);
         }
 
         if (req.query.filter) {

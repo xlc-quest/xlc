@@ -1,11 +1,10 @@
 import * as React from 'react';
 import { Dialog, DialogType, DialogFooter } from '@fluentui/react/lib/Dialog';
 import { PrimaryButton, DefaultButton, IconButton } from '@fluentui/react/lib/Button';
-import { ContextualMenu } from '@fluentui/react/lib/ContextualMenu';
 import { Toggle } from '@fluentui/react/lib/Toggle';
 import { useBoolean } from '@fluentui/react-hooks';
 import { Stack, TextField } from '@fluentui/react';
-import * as connections from '../services/connections';
+import { client } from '../services/connections';
 
 const modalPropsStyles = { main: { maxWidth: 450 } };
 const dialogContentProps = {
@@ -14,10 +13,10 @@ const dialogContentProps = {
   subText: 'manage account and client settings.',
 };
 
-export const SettingsDlgBtn = (props: { refreshBalance: Function }) => {
+export const SettingsDlgBtn = (props: { onUpdateSettings: Function }) => {
   const [hideDialog, { toggle: toggleHideDialog }] = useBoolean(true);
   const [isRemember, { toggle: toggleIsRemember }] = useBoolean(false);
-  const [settings, setSettings] = React.useState({ username: '' });
+  const [settings, setSettings] = React.useState({ username: client.id });
 
   const modalProps = React.useMemo(
     () => ({
@@ -28,8 +27,7 @@ export const SettingsDlgBtn = (props: { refreshBalance: Function }) => {
   );
 
   const onConfirmSettings = () => {
-    connections.updateId(settings.username);
-    props.refreshBalance();
+    props.onUpdateSettings(settings);
   };
 
   return (

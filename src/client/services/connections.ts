@@ -1,13 +1,12 @@
 import axios from "axios";
 import { configs } from '../configs';
 
-const ID_LOADING_PLACEHOLDER = '@loading..'
+const ID_LOADING_PLACEHOLDER = '@xlcdev'
 const CONNECTIONS_SERVER_ID = 'connections'
 
 export const client = {
     id: ID_LOADING_PLACEHOLDER,
     ip: '..',
-    balance: 0,
     influence: 0,
     serverUrl: 'loading',
     connections: [{
@@ -16,25 +15,29 @@ export const client = {
     }]
 };
 
+export const summary = {
+    balance: 0,
+    fromAmount: 0,
+    toAmount: 0,
+    transactionsFrom: 0,
+    transactionsTo: 0,
+    myTransactions: 0,
+    allTransactions: 0
+}
+
+let interval: NodeJS.Timeout;
+
 let _setClient: Function;
 function setClient(client: any) {
     if (_setClient) _setClient(client);
     else console.error(`_setClient not defined`);
 }
 
-export function updateId(id: string) {
-    client.id = id;
-    setClient({...client});
-}
-
-export function updateBalance(transactions: any[]) {
-    const balance = transactions.reduce((sum, t) => {
-        sum += t.to == client.id ? Number(t.amount) : 0;
-        sum += t.from == client.id ? -1*Number(t.amount) : 0;
-        return sum;
-    }, 0);
-    client.balance = balance;
-    setClient({...client});
+export function stop() {
+    if (interval) {
+        console.log(`stopping connections with client id.. ${client.id}..`);
+        clearInterval(interval);
+    }
 }
 
 export function start(setClientFunc?: Function) {
@@ -42,7 +45,6 @@ export function start(setClientFunc?: Function) {
         console.error(`connections.start should be executed only once`);
         return;
     }
-    client.id = '@xlcdev';
 
     if (setClientFunc) {
         _setClient = setClientFunc;
@@ -69,7 +71,7 @@ export function start(setClientFunc?: Function) {
         setClient({...client});
     });
 
-    setInterval(() => {
+    interval = setInterval(() => {
         axios.get(`${configs.serverUrl}/connections?id=${client.id}`, {}).then((res) => {
             if (res.data.length <= 0) return;
             client.connections = res.data;
