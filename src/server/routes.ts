@@ -4,7 +4,6 @@ import * as crypto from 'crypto';
 import { _extendConnections, connections } from './services/connections';
 import * as env from './env';
 import axios from 'axios';
-import { client } from '../client/services/connections';
 
 const router = express.Router();
 
