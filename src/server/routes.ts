@@ -57,7 +57,7 @@ router.get('/transactions', (req, res) => {
             filteredTxs = filteredTxs.filter(t => t.time <= to);
         }
 
-        if (req.query.id) {
+        if (req.query.id && String(req.query.id) != '@root') {
             const clientId = String(req.query.id);
             filteredTxs = filteredTxs.filter(t => t.from == clientId || t.to == clientId);
         }

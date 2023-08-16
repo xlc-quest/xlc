@@ -61,8 +61,11 @@ const App = (props: AppProps) => {
 	];
 
 	const onRefreshAsync = () => {
+		const getTxsUrl = client.id.toLowerCase() == '@root' ?
+			`${configs.serverUrl}/transactions?id=${client.id}&all=true` :
+			`${configs.serverUrl}/transactions?id=${client.id}`;
 		return axios
-		.get(`${configs.serverUrl}/transactions?id=${client.id}`)
+		.get(getTxsUrl)
 		.then((txRes) => {
 			if (!txRes.data) return;
 			const transactions: Transaction[] = [];
