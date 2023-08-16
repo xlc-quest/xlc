@@ -187,8 +187,7 @@ function _onSync() {
         console.log(`no transactions to proceed.. skipping..`)
         return;
       }
-
-      const lastTx = transactions[transactions.length-1];
+      
       const dataRoot = `./data/transactions/${con.connections[0].registeredTime}`;
       
       if (!fs.existsSync(dataRoot)){
