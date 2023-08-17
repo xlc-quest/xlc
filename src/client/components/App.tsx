@@ -83,15 +83,15 @@ const App = (props: AppProps) => {
 			axios.get(`${configs.serverUrl}/transactions?summary=true&id=${client.id}`).then((summaryRes) => {
 				if (!summaryRes.data) return;
 
-				setSummary({
-					balance: summaryRes.data.balance.total,
-					fromAmount: summaryRes.data.balance.fromAmount,
-					toAmount: summaryRes.data.balance.toAmount,
-					transactionsFrom: summaryRes.data.transactions.from,
-					transactionsTo: summaryRes.data.transactions.to,
-					myTransactions: summaryRes.data.transactions.mine,
-					allTransactions: summaryRes.data.transactions.all,
-				});
+				connections.summary.balance = summaryRes.data.balance.total;
+				connections.summary.fromAmount = summaryRes.data.balance.fromAmount;
+				connections.summary.toAmount = summaryRes.data.balance.toAmount;
+				connections.summary.transactionsFrom = summaryRes.data.transactions.from;
+				connections.summary.transactionsTo = summaryRes.data.transactions.to;
+				connections.summary.myTransactions = summaryRes.data.transactions.mine;
+				connections.summary.allTransactions = summaryRes.data.transactions.all;
+
+				setSummary({...connections.summary});
 			});
 
 			setAllTransactions(transactions.reverse());
