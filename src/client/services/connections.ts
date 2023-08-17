@@ -41,10 +41,10 @@ export function stop() {
 }
 
 export function start(setClientFunc?: Function) {
-    if (client.id != ID_LOADING_PLACEHOLDER) {
-        console.error(`connections.start should be executed only once`);
-        return;
-    }
+    // if (client.id != ID_LOADING_PLACEHOLDER) {
+    //     console.error(`connections.start should be executed only once`);
+    //     return;
+    // }
 
     if (setClientFunc) {
         _setClient = setClientFunc;
@@ -60,8 +60,7 @@ export function start(setClientFunc?: Function) {
         setClient({...client});
         return res.data;
     }).catch(e => {
-        console.warn(`GET /connections ..error after 1s, trying localhost..`);
-        //configs.SERVER_URL = `http://localhost:${window.location.port}`;
+        console.warn(`GET /connections ..error after 1s..`);
     });
 
     Promise.all([ipPromise, connectionsPromise]).then((values) => {
@@ -80,18 +79,4 @@ export function start(setClientFunc?: Function) {
             setClient({...client});
         });
     }, 4000);
-
-/***
-    ########################### TEST CODE ###############################
-***/
-    // const testInterval = Math.random() * 10000 + 5000;
-    // setInterval(() => {
-    //     axios.post(`${configs.url}/transactions?id=test:${client.ip}`, {
-    //         from: `@test#${(Math.random() * 1000).toFixed(0)}`,
-    //         to: `@test#${(Math.random() * 1000).toFixed(0)}`,
-    //         amount: (Math.random() * 1).toFixed(4),
-    //         message: `Test Tx (every ${(testInterval/1000).toFixed(1)}s)`
-    //     }).then((res) => {
-    //     });
-    // }, testInterval);
 }
