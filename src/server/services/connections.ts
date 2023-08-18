@@ -25,7 +25,7 @@ export function _extendConnections(id: string, url?: string): Connection[] {
   }
 
   const now = new Date().getTime();
-  if (id == env.CONNECTION_SERVER_ID && connections[0].url == env.SERVER_URL) {
+  if (connections.length == 1) {
     console.log(`setting up the first @connections.. without expiry`);
     connections[0].registeredTime = connections[0].registeredTime || now;
     return connections;
