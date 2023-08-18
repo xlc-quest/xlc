@@ -101,20 +101,7 @@ router.post('/transactions', (req, res) => {
         time: new Date().getTime()
     };
 
-    if (env.SERVER_ID != env.CONNECTION_SERVER_ID) {
-        axios
-        .post(`${connections[0].url}/transactions?id=${env.SERVER_ID}`, transaction)
-        .then((res) => {
-          console.log(`posted a transaction from:${env.SERVER_ID} to ${connections[0].id}..`);
-        })
-        .catch((e) => {
-          console.log(e);
-          console.error(`failed to post a transaction from:${env.SERVER_ID} to ${connections[0].id}..`);
-        });
-    } else {
-        models.transactions.push(transaction);
-    }
-
+    models.transactions.push(transaction);
     res.status(200).json(transaction);
 });
 

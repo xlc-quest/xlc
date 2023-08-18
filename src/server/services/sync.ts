@@ -10,6 +10,59 @@ const _sync = {
   lastTxSyncTime: <{ [key: string]: number }>{}
 }
 
+export function startSync() {
+  console.log(`setting up initial connections..`);
+  const now = new Date().getTime();
+
+  axios.get(`${con.connections[0].url}/connections?id=${env.SERVER_ID}&url=${env.SERVER_URL}`)
+  .then((res) => {
+    const connection: Connection = res.data[0];
+    con.connections[0].registeredTime = connection.registeredTime || now;
+
+
+    const dataRoot = `./data/transactions/${connection.registeredTime}`;
+    if (!fs.existsSync(dataRoot)){
+      fs.mkdirSync(dataRoot, { recursive: true });
+      _sync.isRunning = false;
+    } else {
+      const txFiles = fs.readdirSync(dataRoot);
+      let lastTxSyncTime = txFiles.reduce((lastTxTime, t) =>  {
+         const txTime = Number(t.split('-')[1]);
+         return lastTxTime > txTime ? lastTxTime : txTime;
+      }, 0);
+
+      for (let i=0; i<txFiles.length; i++) {
+        const txFile = fs.readFileSync(`${dataRoot}/${txFiles[i]}`);
+        const txJson = JSON.parse(txFile.toString());
+
+        transactions.push(...txJson);
+      }
+
+      console.log(`restored ${transactions.length} txs from ${txFiles.length} files..`);
+      _sync.lastTxSyncTime[connection.id] = lastTxSyncTime;
+      _sync.isRunning = false;
+    }
+  }).catch(e => {
+    console.log(e);
+    console.error(`failed to connect. please check @connections server`);
+    _sync.isRunning = false;
+    return;
+  });
+
+  // connection sync process
+  con.startSync();
+
+  setInterval(() => {
+    try {
+      _onSync();
+    } catch (e) {
+      console.log(e);
+      _sync.isRunning = false;
+      console.warn(`full sync crashed with error.. waiting for next sync..`);
+    };
+  }, 5000);
+}
+
 function _isStrike(probability: number) {
   return !!probability && Math.random() <= probability;
 }
@@ -43,20 +96,13 @@ function _updateInfluence(c: Connection) {
 
       if (_isStrike(prob)) {
         console.log(`!!*#*#*STRIKE*#*#*!!`);
-
-        axios
-        .post(`${con.connections[0].url}/transactions?id=${env.SERVER_ID}`, {
+        transactions.push({
+          id: crypto.randomUUID(),
+          time: new Date().getTime(),
           from: env.SERVER_ID,
           to: c.id,
           amount: reward > 0 ? reward : .0001,
           message: `connection reward strike at ${(prob*100).toFixed(1)}%`,
-        })
-        .then((res) => {
-          console.log(`posted a transaction from:${env.SERVER_ID} to ${con.connections[0].id}..`);
-        })
-        .catch((e) => {
-          console.log(e);
-          console.error(`failed to post a transaction from:${env.SERVER_ID} to ${con.connections[0].id}..`);
         });
       }
     }
@@ -219,55 +265,3 @@ function _onSync() {
   }
 }
 
-export function startSync() {
-  console.log(`setting up initial connections..`);
-  const now = new Date().getTime();
-
-  axios.get(`${con.connections[0].url}/connections?id=${env.SERVER_ID}&url=${env.SERVER_URL}`)
-  .then((res) => {
-    const connection: Connection = res.data[0];
-    con.connections[0].registeredTime = connection.registeredTime || now;
-
-
-    const dataRoot = `./data/transactions/${connection.registeredTime}`;
-    if (!fs.existsSync(dataRoot)){
-      fs.mkdirSync(dataRoot, { recursive: true });
-      _sync.isRunning = false;
-    } else {
-      const txFiles = fs.readdirSync(dataRoot);
-      let lastTxSyncTime = txFiles.reduce((lastTxTime, t) =>  {
-         const txTime = Number(t.split('-')[1]);
-         return lastTxTime > txTime ? lastTxTime : txTime;
-      }, 0);
-
-      for (let i=0; i<txFiles.length; i++) {
-        const txFile = fs.readFileSync(`${dataRoot}/${txFiles[i]}`);
-        const txJson = JSON.parse(txFile.toString());
-
-        transactions.push(...txJson);
-      }
-
-      console.log(`restored ${transactions.length} txs from ${txFiles.length} files..`);
-      _sync.lastTxSyncTime[connection.id] = lastTxSyncTime;
-      _sync.isRunning = false;
-    }
-  }).catch(e => {
-    console.log(e);
-    console.error(`failed to connect. please check @connections server`);
-    _sync.isRunning = false;
-    return;
-  });
-
-  // connection sync process
-  con.startSync();
-
-  setInterval(() => {
-    try {
-      _onSync();
-    } catch (e) {
-      console.log(e);
-      _sync.isRunning = false;
-      console.warn(`full sync crashed with error.. waiting for next sync..`);
-    };
-  }, 5000);
-}

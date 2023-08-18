@@ -31,11 +31,6 @@ export function _extendConnections(id: string, url?: string): Connection[] {
     return connections;
   }
 
-  if (id == env.CONNECTION_SERVER_ID && connections[0].url != env.SERVER_URL) {
-    console.log(`@connections already exists.. updating name..`);
-    id = `@connections${now}`;
-  }
-
   const newExpiry = now + 10000;
   connection = connections.find((c) => c.id === id && c.url === url && c.registeredTime);
   if (connection) {
