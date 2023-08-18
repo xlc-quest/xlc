@@ -110,14 +110,16 @@ function _updateInfluence(c: Connection) {
 }
 
 function _onSync() {
+  const now = new Date().getTime();
+  con.updateLocalConnections(now);
+  
   if (_sync.isRunning) {
     console.log(`full sync is already running.. skipping..`);
     return;
   }
 
   _sync.isRunning = true;
-  const now = new Date().getTime();
-  con.updateLocalConnections(now);
+
 
   console.log(`starting full sync on connections: ${con.connections.length}..`);  
   con.connections.forEach(c => {
