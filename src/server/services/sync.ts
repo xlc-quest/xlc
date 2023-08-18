@@ -213,6 +213,8 @@ function _onSync() {
         count++;
       } else {
         // throw error if mismatch
+        console.log(`transaction id ${t.id} already exists.. skipping..`);
+        console.log(pt);
       }
     });
 
