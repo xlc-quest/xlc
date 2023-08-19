@@ -161,7 +161,7 @@ function _onSync() {
     
     console.log(`last sync time of ${c.id}(${c.url}).. ${_sync.lastTxSyncTime[c.id]}`);
     const transactionsUrl = `${c.url}/transactions?id=${env.SERVER_ID}${_sync.lastTxSyncTime[c.id] ?
-      '&from='+(_sync.lastTxSyncTime[c.id] - 60000) : ''}&all=true`;
+      '&from='+(_sync.lastTxSyncTime[c.id]) : ''}&all=true`;
 
     const transactionsPromise = axios
       .get(transactionsUrl)
@@ -214,7 +214,6 @@ function _onSync() {
       } else {
         // throw error if mismatch
         console.log(`transaction id ${t.id} already exists.. skipping..`);
-        console.log(pt);
       }
     });
 
