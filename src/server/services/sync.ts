@@ -35,7 +35,7 @@ export function startSync() {
         const txFile = fs.readFileSync(`${dataRoot}/${txFiles[i]}`);
         const txJson = JSON.parse(txFile.toString());
 
-        transactions.push(...txJson);
+        // transactions.push(...txJson);
       }
 
       console.log(`restored ${transactions.length} txs from ${txFiles.length} files..`);
@@ -252,14 +252,14 @@ function _onSync() {
         lastTxSyncTime = lastTxSyncTime > 0 ? lastTxSyncTime : transactions[0].time;
 
         const dataStoreCadence = 1200000;
-        if (now - lastTxSyncTime > dataStoreCadence) {
+        if (lastTxSyncTime > 0 && now - lastTxSyncTime > dataStoreCadence) {
           const txBlock = transactions.filter(t => t.time >= lastTxSyncTime);
           const count = txBlock.length;
           const dataPath = `${dataRoot}/${lastTxSyncTime}-${now}-${count}.json`;
           
           console.log(`storing data every ${dataStoreCadence/60000} mins.. ${dataPath}`);
-          fs.writeFile(dataPath, JSON.stringify(txBlock), "utf8", () => {
-          });
+          // fs.writeFile(dataPath, JSON.stringify(txBlock), "utf8", () => {
+          // });
         }
       }
     })
