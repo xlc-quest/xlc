@@ -14,5 +14,3 @@ export interface Connection {
     expiry?: number;
     influence?: number;
 }
-
-export const transactions: Transaction[] = [];

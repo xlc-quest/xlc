@@ -1,13 +1,15 @@
 import axios from "axios";
-import { Connection, Transaction, transactions } from "../models";
-import * as con from "./connections";
+import { Connection, Transaction } from "./models";
+import * as con from "./services/connections";
 import * as crypto from 'crypto'
-import * as env from '../env';
+import * as env from './env';
 import * as fs from 'fs';
+import * as lockfile from 'proper-lockfile';
+import * as transactions from './services/transactions';
 
 const _sync = {
   isRunning: true,
-  lastTxSyncTime: <{ [key: string]: number }>{}
+  lastTxSyncTime: <{ [key: string]: number }>{},
 }
 
 export function startSync() {
@@ -18,35 +20,13 @@ export function startSync() {
   .then((res) => {
     const connection: Connection = res.data[0];
     con.connections[0].registeredTime = connection.registeredTime || now;
-
-
-    const dataRoot = `./data/transactions/${connection.registeredTime}`;
-    if (!fs.existsSync(dataRoot)){
-      fs.mkdirSync(dataRoot, { recursive: true });
-      _sync.isRunning = false;
-    } else {
-      const txFiles = fs.readdirSync(dataRoot);
-      let lastTxSyncTime = txFiles.reduce((lastTxTime, t) =>  {
-         const txTime = Number(t.split('-')[1]);
-         return lastTxTime > txTime ? lastTxTime : txTime;
-      }, 0);
-
-      for (let i=0; i<txFiles.length; i++) {
-        const txFile = fs.readFileSync(`${dataRoot}/${txFiles[i]}`);
-        const txJson = JSON.parse(txFile.toString());
-
-        // transactions.push(...txJson);
-      }
-
-      console.log(`restored ${transactions.length} txs from ${txFiles.length} files..`);
-      _sync.lastTxSyncTime[connection.id] = lastTxSyncTime;
-      _sync.isRunning = false;
-    }
+    _sync.lastTxSyncTime[connection.id] = transactions.onStart(con.connections[0].registeredTime);
   }).catch(e => {
     console.log(e);
     console.error(`failed to connect. please check @connections server`);
-    _sync.isRunning = false;
     return;
+  }).finally(() => {
+    _sync.isRunning = false;
   });
 
   // connection sync process
@@ -61,10 +41,6 @@ export function startSync() {
       console.warn(`full sync crashed with error.. waiting for next sync..`);
     };
   }, 5000);
-}
-
-function _isStrike(probability: number) {
-  return !!probability && Math.random() <= probability;
 }
 
 function _updateInfluence(c: Connection) {
@@ -83,29 +59,8 @@ function _updateInfluence(c: Connection) {
   const serverAge = (now - startTime)/1000;
   c.influence = connectionAge > serverAge ? weight : (weight + (weight * connectionAge/serverAge))/2;
 
-  if (c.id != env.CONNECTION_SERVER_ID && c.id != '@root' && c.id != env.SERVER_ID && connectionAge > 10)
-  {
-    const recentRewardTx = transactions.find((t) => t.from == env.SERVER_ID && t.to == c.id && t.time > now - 10000);
-    if (!recentRewardTx) {
-      const reward = Math.floor(Math.random() * 10)/10000;
-      // console.log(`${c.id}\
-      //   \nweight: ${weight}, serverAge: ${serverAge}s, connectionAge: ${connectionAge}s, \
-      //   \nconnectionWeight: ${connectionAge / serverAge}, influence: ${c.influence.toFixed(1)}`);
-      // console.log(`${c.id} influence ${(c.influence*100).toFixed(1)}%`);
-      const prob = .1 + c.influence;
-
-      if (_isStrike(prob)) {
-        console.log(`!!*#*#*STRIKE*#*#*!!`);
-        transactions.push({
-          id: crypto.randomUUID(),
-          time: new Date().getTime(),
-          from: env.SERVER_ID,
-          to: c.id,
-          amount: reward > 0 ? reward : .0001,
-          message: `connection reward strike at ${(prob*100).toFixed(1)}%`,
-        });
-      }
-    }
+  if (c.id != env.CONNECTION_SERVER_ID && c.id != '@root' && c.id != env.SERVER_ID && connectionAge > 10) {
+    transactions.tryPostReward(c.id, c.influence);
   }
 }
 
@@ -202,65 +157,59 @@ function _onSync() {
     con.updateLocalConnections(now);
   });
 
+  let newCount = 0;
   Promise.all(transactionsPromises).then(() => {
     console.log(`..processing ${allPeerTransactions.length} new peer transactions..`);
-    let count = 0;
-
-    allPeerTransactions.forEach((pt) => {
-      let t = transactions.find((t) => t.id == pt.id);
-      if (!t) {
-        transactions.push(pt);
-        count++;
-      } else {
-        // throw error if mismatch
-        console.log(`transaction id ${t.id} already exists.. skipping..`);
-      }
-    });
-
-    console.log(`..added ${count} new transactions..`);
-    transactions.sort((ta, tb) => (ta.time < tb.time ? -1 : 1)); // TODO: implement sorted list
+    newCount = transactions._onReceivedPeerTransactions(allPeerTransactions);
+    console.log(`..added ${newCount} new transactions..`);
+    return Promise.all(connectionsPromises);
+  }).then(() => {
+    if (newCount > 0) {
+      allPeerConnections.forEach(c => {
+        _sync.lastTxSyncTime[c.id] = now;
+      });
+    }
   });
 
   if (connectionsPromises.length > 0 || transactionsPromises.length > 0) {
     Promise.all([...connectionsPromises, ...transactionsPromises]).finally(() => {
-      _sync.isRunning = false;
-      console.log(`full sync completed for ${connectionsPromises.length} connections.. ${transactions.length} txs..`);
+      // if (transactionsPromises.length > 0) {
+      //   allPeerConnections.forEach(c => {
+      //     _sync.lastTxSyncTime[c.id] = now;
+      //   });
+      // }
 
-      if (transactionsPromises.length > 0) {
-        allPeerConnections.forEach(c => {
-          _sync.lastTxSyncTime[c.id] = now;
-        });
-      }
-
-      if (!transactions.length) {
-        console.log(`no transactions to proceed.. skipping..`)
-        return;
-      }
+      // if (!transactions.length) {
+      //   console.log(`no transactions to proceed.. skipping..`)
+      //   return;
+      // }
       
-      const dataRoot = `./data/transactions/${con.connections[0].registeredTime}`;
-      
-      if (!fs.existsSync(dataRoot)){
-        fs.mkdirSync(dataRoot, { recursive: true });
-      } else {
-        const txFiles = fs.readdirSync(dataRoot);
-        let lastTxSyncTime = txFiles.reduce((lastTxTime, t) =>  {
-           const txTime = Number(t.split('-')[1]);
-           return lastTxTime > txTime ? lastTxTime : txTime;
-        }, 0);
+      // const dataRoot = `./data/${env.SERVER_ID}/transactions/${con.connections[0].registeredTime}`;
+      // if (!fs.existsSync(dataRoot)){
+      //   fs.mkdirSync(dataRoot, { recursive: true });
+      // } else {
+      //   const txFiles = fs.readdirSync(dataRoot);
+      //   let lastTxSyncTime = txFiles.reduce((lastTxTime, t) =>  {
+      //      const txTime = Number(t.split('-')[1]);
+      //      return lastTxTime > txTime ? lastTxTime : txTime;
+      //   }, 0);
 
-        lastTxSyncTime = lastTxSyncTime > 0 ? lastTxSyncTime : transactions[0].time;
+      //   lastTxSyncTime = lastTxSyncTime > 0 ? lastTxSyncTime : transactions[0].time;
 
-        const dataStoreCadence = 1200000;
-        if (lastTxSyncTime > 0 && now - lastTxSyncTime > dataStoreCadence) {
-          const txBlock = transactions.filter(t => t.time >= lastTxSyncTime);
-          const count = txBlock.length;
-          const dataPath = `${dataRoot}/${lastTxSyncTime}-${now}-${count}.json`;
+      //   const dataStoreCadence = 1200000;
+      //   if (lastTxSyncTime > 0 && now - lastTxSyncTime > dataStoreCadence) {
+      //     const txBlock = transactions.filter(t => t.time >= lastTxSyncTime);
+      //     const count = txBlock.length;
+      //     const dataPath = `${dataRoot}/${lastTxSyncTime}-${now}-${count}.json`;
           
-          console.log(`storing data every ${dataStoreCadence/60000} mins.. ${dataPath}`);
-          // fs.writeFile(dataPath, JSON.stringify(txBlock), "utf8", () => {
-          // });
-        }
-      }
+      //     console.log(`storing data every ${dataStoreCadence/60000} mins.. ${dataPath}`);
+      //     // fs.writeFile(dataPath, JSON.stringify(txBlock), "utf8", () => {
+      //     // });
+      //   }
+      // }
+
+      _sync.isRunning = false;
+      console.log(`full sync completed for ${connectionsPromises.length} connections.. ${transactions.getLength()} txs..`);
     })
   } else {
     _sync.isRunning = false;

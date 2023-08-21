@@ -1,7 +1,7 @@
 import * as express from 'express';
 import apiRouter from './routes';
 import * as env from './env';
-import * as sync from './services/sync';
+import * as sync from './sync';
 
 const app = express();
 

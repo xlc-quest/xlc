@@ -4,6 +4,7 @@ import * as crypto from 'crypto';
 import { _extendConnections, connections } from './services/connections';
 import * as env from './env';
 import axios from 'axios';
+import * as transactions from './services/transactions';
 
 const router = express.Router();
 
@@ -22,14 +23,7 @@ router.get('/transactions', (req, res) => {
 
         let toAmount = 0;
         let fromAmount = 0;
-        const balance = models.transactions.reduce((sum, t) => {
-            sum += t.to == clientId ? Number(t.amount) : 0;
-            sum += t.from == clientId ? -1*Number(t.amount) : 0;
-            
-            toAmount += t.to == clientId ? Number(t.amount) : 0;
-            fromAmount += t.from == clientId ? Number(t.amount) : 0;
-            return sum;
-        }, 0);
+        const balance = transactions.getBalance(clientId);
 
         return res.status(200).json({
             id: clientId,
@@ -38,15 +32,10 @@ router.get('/transactions', (req, res) => {
                 fromAmount: fromAmount,
                 toAmount: toAmount,
             },
-            transactions: {
-                from: models.transactions.filter(t => t.from == clientId).length,
-                to: models.transactions.filter(t => t.to == clientId).length,
-                mine: models.transactions.filter(t => t.from == clientId || t.to == clientId).length,
-                all: models.transactions.length
-            }
+            transactions: transactions.getSummary(clientId)
         });
     } else {
-        let filteredTxs = models.transactions.filter(t => true); // TODO
+        let filteredTxs = transactions.getAll();
         if (req.query.from) {
             const from = Number(req.query.from);
             filteredTxs = filteredTxs.filter(t => from <= t.time);
@@ -103,8 +92,11 @@ router.post('/transactions', (req, res) => {
         time: new Date().getTime()
     };
 
-    models.transactions.push(transaction);
-    res.status(200).json(transaction);
+    if (transactions.addTransaction(transaction)) {
+        res.status(200).json(transaction);
+    } else {
+        res.status(400).json(`Invalid transaction`);
+    }
 });
 
 export default router;
