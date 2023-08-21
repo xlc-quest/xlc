@@ -78,6 +78,7 @@ export function tryPostReward(to: string, probability: number) {
           to: to,
           amount: reward > 0 ? reward : .0001,
           message: `connection reward strike at ${(prob*100).toFixed(1)}%`,
+          by: env.SERVER_ID
         });
       }
     }
@@ -104,8 +105,6 @@ export function addTransaction(tx: Transaction): boolean {
   if (listTx || mapTx) {
       // throw error if mismatch
       console.warn(`transaction id ${tx.id} already exists.. skipping..`);
-      console.warn(listTx);
-      console.warn(mapTx);
       return false;
   } else {
       _transactions.push(tx);

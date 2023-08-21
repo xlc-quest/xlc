@@ -115,8 +115,8 @@ function _onSync() {
     connectionsPromises.push(connectionsPromise);
     
     console.log(`last sync time of ${c.id}(${c.url}).. ${_sync.lastTxSyncTime[c.id]}`);
-    const transactionsUrl = `${c.url}/transactions?id=${env.SERVER_ID}${_sync.lastTxSyncTime[c.id] ?
-      '&from='+(_sync.lastTxSyncTime[c.id]) : ''}&all=true`;
+    const transactionsUrl = `${c.url}/transactions${_sync.lastTxSyncTime[c.id] ?
+      `?by=${c.id}&from=${_sync.lastTxSyncTime[c.id]}&` : `?`}all=true`;
 
     const transactionsPromise = axios
       .get(transactionsUrl)
@@ -173,41 +173,6 @@ function _onSync() {
 
   if (connectionsPromises.length > 0 || transactionsPromises.length > 0) {
     Promise.all([...connectionsPromises, ...transactionsPromises]).finally(() => {
-      // if (transactionsPromises.length > 0) {
-      //   allPeerConnections.forEach(c => {
-      //     _sync.lastTxSyncTime[c.id] = now;
-      //   });
-      // }
-
-      // if (!transactions.length) {
-      //   console.log(`no transactions to proceed.. skipping..`)
-      //   return;
-      // }
-      
-      // const dataRoot = `./data/${env.SERVER_ID}/transactions/${con.connections[0].registeredTime}`;
-      // if (!fs.existsSync(dataRoot)){
-      //   fs.mkdirSync(dataRoot, { recursive: true });
-      // } else {
-      //   const txFiles = fs.readdirSync(dataRoot);
-      //   let lastTxSyncTime = txFiles.reduce((lastTxTime, t) =>  {
-      //      const txTime = Number(t.split('-')[1]);
-      //      return lastTxTime > txTime ? lastTxTime : txTime;
-      //   }, 0);
-
-      //   lastTxSyncTime = lastTxSyncTime > 0 ? lastTxSyncTime : transactions[0].time;
-
-      //   const dataStoreCadence = 1200000;
-      //   if (lastTxSyncTime > 0 && now - lastTxSyncTime > dataStoreCadence) {
-      //     const txBlock = transactions.filter(t => t.time >= lastTxSyncTime);
-      //     const count = txBlock.length;
-      //     const dataPath = `${dataRoot}/${lastTxSyncTime}-${now}-${count}.json`;
-          
-      //     console.log(`storing data every ${dataStoreCadence/60000} mins.. ${dataPath}`);
-      //     // fs.writeFile(dataPath, JSON.stringify(txBlock), "utf8", () => {
-      //     // });
-      //   }
-      // }
-
       _sync.isRunning = false;
       console.log(`full sync completed for ${connectionsPromises.length} connections.. ${transactions.getLength()} txs..`);
     })

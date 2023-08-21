@@ -5,6 +5,7 @@ export interface Transaction {
     amount?: number;
     message?: string;
     time: number;
+    by: string;
 }
 
 export interface Connection {

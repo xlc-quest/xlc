@@ -36,6 +36,12 @@ router.get('/transactions', (req, res) => {
         });
     } else {
         let filteredTxs = transactions.getAll();
+
+        if (req.query.by) {
+            const serverId = String(req.query.by);
+            filteredTxs = filteredTxs.filter(t => t.by == serverId);
+        }
+
         if (req.query.from) {
             const from = Number(req.query.from);
             filteredTxs = filteredTxs.filter(t => from <= t.time);
@@ -46,9 +52,7 @@ router.get('/transactions', (req, res) => {
             filteredTxs = filteredTxs.filter(t => t.time <= to);
         }
 
-        if (req.query.id && String(req.query.id) != '@root' &&
-            !String(req.query.id).startsWith('@server') &&
-            !String(req.query.id).startsWith(env.CONNECTION_SERVER_ID)) {
+        if (req.query.id && String(req.query.id) != '@root') {
             const clientId = String(req.query.id);
             filteredTxs = filteredTxs.filter(t => t.from == clientId || t.to == clientId);
         }
@@ -89,7 +93,8 @@ router.post('/transactions', (req, res) => {
         to: req.body.to,
         amount: req.body.amount,
         message: req.body.message,
-        time: new Date().getTime()
+        time: new Date().getTime(),
+        by: env.SERVER_ID
     };
 
     if (transactions.addTransaction(transaction)) {
