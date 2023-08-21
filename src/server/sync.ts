@@ -116,7 +116,7 @@ function _onSync() {
     
     console.log(`last sync time of ${c.id}(${c.url}).. ${_sync.lastTxSyncTime[c.id]}`);
     const transactionsUrl = `${c.url}/transactions${_sync.lastTxSyncTime[c.id] ?
-      `?by=${c.id}&from=${_sync.lastTxSyncTime[c.id]}&` : `?`}all=true`;
+      `?from=${_sync.lastTxSyncTime[c.id]}&` : `?`}all=true`;
 
     const transactionsPromise = axios
       .get(transactionsUrl)
