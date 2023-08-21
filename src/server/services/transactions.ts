@@ -109,6 +109,7 @@ export function addTransaction(tx: Transaction): boolean {
   } else {
       _transactions.push(tx);
       _transactionIdMap[tx.id] = tx;
+      _transactions.sort((ta, tb) => (ta.time < tb.time ? -1 : 1));
       return true;
   }
 }

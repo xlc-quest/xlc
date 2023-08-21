@@ -20,7 +20,7 @@ export function startSync() {
   .then((res) => {
     const connection: Connection = res.data[0];
     con.connections[0].registeredTime = connection.registeredTime || now;
-    _sync.lastTxSyncTime[connection.id] = transactions.onStart(con.connections[0].registeredTime);
+    transactions.onStart(con.connections[0].registeredTime);
   }).catch(e => {
     console.log(e);
     console.error(`failed to connect. please check @connections server`);
@@ -131,6 +131,8 @@ function _onSync() {
             // throw error if mismatch
           }
         });
+
+        _sync.lastTxSyncTime[c.id] = now;
       })
       .catch((e) => {
         console.log(e);
@@ -163,12 +165,6 @@ function _onSync() {
     newCount = transactions._onReceivedPeerTransactions(allPeerTransactions);
     console.log(`..added ${newCount} new transactions..`);
     return Promise.all(connectionsPromises);
-  }).then(() => {
-    if (newCount > 0) {
-      allPeerConnections.forEach(c => {
-        _sync.lastTxSyncTime[c.id] = now;
-      });
-    }
   });
 
   if (connectionsPromises.length > 0 || transactionsPromises.length > 0) {
