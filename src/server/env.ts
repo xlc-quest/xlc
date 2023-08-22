@@ -8,5 +8,3 @@ export const DEV_PORTS = ['3000', '3001', '3002'];
 export const SERVER_PORT = process.env.PORT || process.argv[2] || '3000';
 export const SERVER_URL = process.env.PORT ? 'https://xlc.quest' : `http://174.127.170.242:${SERVER_PORT}`;
 export const SERVER_ID = PUBLIC_PORTS.includes(SERVER_PORT) && IS_CONNECTION_SERVER ? CONNECTION_SERVER_ID : '@server' + SERVER_PORT;
-
-console.log(SERVER_ID);

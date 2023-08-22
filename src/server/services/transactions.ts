@@ -6,6 +6,7 @@ import * as crypto from 'crypto';
 
 const _transactions: Transaction[] = [];
 const _transactionIdMap: { [key: string]: Transaction } = {};
+let DATA_ROOT: string;
 
 function _isStrike(probability: number) {
     return !!probability && Math.random() <= probability;
@@ -25,36 +26,31 @@ function _mergeAndSortTransactions(txs: Transaction[]): Transaction[] {
 }
 
 export function onStart(registeredTime: number): number {
-    let lastTxSyncTime = registeredTime;
-    const dataRoot = `./data/${env.SERVER_ID}/transactions/${registeredTime}`;
-    if (!fs.existsSync(dataRoot)){
-      fs.mkdirSync(dataRoot, { recursive: true });
-    } 
+    let lastTxFileTime = registeredTime;
+    DATA_ROOT = `./data/${env.SERVER_ID}/transactions/${registeredTime}`;
+    if (!fs.existsSync(DATA_ROOT)){
+      fs.mkdirSync(DATA_ROOT, { recursive: true });
+    }
     
     if (_transactions.length == 0) {
-      const txFiles = fs.readdirSync(dataRoot);
-      lastTxSyncTime = txFiles.reduce((lastTxTime, t) =>  {
+      const txFiles = fs.readdirSync(DATA_ROOT);
+      lastTxFileTime = txFiles.reduce((lastTxTime, t) =>  {
          const txTime = Number(t.split('-')[1]);
          return lastTxTime > txTime ? lastTxTime : txTime;
       }, 0);
 
       for (let i=0; i<txFiles.length; i++) {
-        lockfile.lock(dataRoot).then((release) => {
-          const txFile = fs.readFileSync(`${dataRoot}/${txFiles[i]}`);
-          const txJson = JSON.parse(txFile.toString());
-          _transactions.push(...txJson);
-
-          return release();
-        }).catch((e) => {
-          console.error(e);
-          return;
-        });
+        const txFile = fs.readFileSync(`${DATA_ROOT}/${txFiles[i]}`);
+        const txJson = JSON.parse(txFile.toString());
+        for (let i=0; i<txJson.length; i++) {
+          addTransaction(txJson[i]);
+        }
+        
+        console.log(`restored ${_transactions.length} txs from ${txFiles[i]}..`);
       }
-
-      console.log(`restored ${_transactions.length} txs from ${txFiles.length} files..`);
     }
 
-    return lastTxSyncTime;
+    return _transactions.length > 0 ? lastTxFileTime : 0;
 }
 
 export function tryPostReward(to: string, probability: number) {
@@ -84,15 +80,13 @@ export function tryPostReward(to: string, probability: number) {
     }
 }
 
-export function _onReceivedPeerTransactions(allPeerTransactions: Transaction[]) {
+export function _onReceivedPeerTransactions(newPeerTxs: Transaction[]) {
   let count = 0;
 
-  const uniqueTxs = _mergeAndSortTransactions(allPeerTransactions);
+  const uniqueTxs = _mergeAndSortTransactions(newPeerTxs);
   for (let i=0; i<uniqueTxs.length; i++) {
     count += addTransaction(uniqueTxs[i]) ? 1 : 0;
   }
-
-
 
   return count;
 }
@@ -150,3 +144,50 @@ export function getAll(): Transaction[] {
 export function getOne(id: string) {
   return _transactionIdMap[id];
 }
+
+function _getLastTxFileTime() {
+  if (!fs.existsSync(DATA_ROOT)) throw `DATA_ROOT not set, check onStart..`;
+
+  const txFiles = fs.readdirSync(DATA_ROOT);
+  return txFiles.reduce((lastTxTime, t) =>  {
+     const txTime = Number(t.split('-')[1]);
+     return lastTxTime > txTime ? lastTxTime : txTime;
+  }, _transactions[0].time);
+}
+
+export function onPostSync(): number {
+  if (!_transactions.length) {
+    console.log(`no transactions to proceed.. skip post sync..`);
+    return 0;
+  }
+
+  if (!fs.existsSync(DATA_ROOT)) throw `DATA_ROOT not set, check onStart..`;
+
+  const lastTxTime = _transactions[_transactions.length-1].time;
+  const lastTxFileTime = _getLastTxFileTime();
+  const dataStoreCadence = 1200000;
+
+  if (lastTxTime - lastTxFileTime > dataStoreCadence) {
+    const txBlock = _transactions.filter(t => t.time >= lastTxFileTime);
+    const count = txBlock.length;
+    const dataPath = `${DATA_ROOT}/${lastTxFileTime}-${lastTxTime}-${count}.json`;
+    
+    console.log(`storing data every ${dataStoreCadence/60000} mins.. ${dataPath}`);
+
+    lockfile.lock(DATA_ROOT).then((release) => {
+      fs.writeFileSync(dataPath, JSON.stringify(txBlock), "utf8");
+      return release();
+    }).catch((e) => {
+      console.error(e);
+      return;
+    }).finally(() => {
+      console.log(`stored ${count} txs to ${dataPath}..`);
+    });
+  }
+
+  return lastTxTime;
+}
+export function getRange(from: number, to: number) {
+  return _transactions.filter(t => from <= t.time && t.time <= to);
+}
+

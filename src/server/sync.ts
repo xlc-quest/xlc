@@ -9,13 +9,13 @@ import * as transactions from './services/transactions';
 
 const _sync = {
   isRunning: true,
+  lastTxFileTime: 0,
   lastTxSyncTime: <{ [key: string]: number }>{},
 }
 
 export function startSync() {
   console.log(`setting up initial connections..`);
   const now = new Date().getTime();
-
   axios.request({
     timeout: 2000,
     method: "GET",
@@ -23,7 +23,7 @@ export function startSync() {
   .then((res) => {
     const connection: Connection = res.data[0];
     con.connections[0].registeredTime = connection.registeredTime || now;
-    transactions.onStart(con.connections[0].registeredTime);
+    _sync.lastTxFileTime = transactions.onStart(con.connections[0].registeredTime);
   }).catch(e => {
     console.log(e);
     console.error(`failed to connect. please check @connections server`);
@@ -121,7 +121,11 @@ function _onSync() {
 
     connectionsPromises.push(connectionsPromise);
     
-    console.log(`last sync time of ${c.id}(${c.url}).. ${_sync.lastTxSyncTime[c.id]}`);
+    if (!_sync.lastTxSyncTime[c.id] && _sync.lastTxFileTime > 0) {
+      console.log(`setting last sync time of ${c.id}(${c.url}) to file time ${_sync.lastTxFileTime}..`);
+      _sync.lastTxSyncTime[c.id] = _sync.lastTxFileTime;
+    }
+
     const transactionsUrl = `${c.url}/transactions${_sync.lastTxSyncTime[c.id] ?
       `?from=${(_sync.lastTxSyncTime[c.id])}&` : `?`}all=true`;
 
@@ -151,7 +155,7 @@ function _onSync() {
       })
       .catch((e) => {
         console.log(e);
-        console.warn(`error thrown during GET ${c.url}/${transactionsUrl}`);
+        console.warn(`error thrown during GET ${transactionsUrl}`);
         con.updateLocalConnections();
       });
 
@@ -184,21 +188,57 @@ function _onSync() {
       return txs;
     }, []);
 
-    newCount = transactions._onReceivedPeerTransactions(newTxs);
+    const newCount = transactions._onReceivedPeerTransactions(newTxs);
+    if (newTxs.length != newCount) {
+      console.warn(`new transactions mismatch, could be racing condition..`);
+    }
+
     console.log(`..added ${newCount} new transactions..`);
     return Promise.all(connectionsPromises);
   });
 
   if (connectionsPromises.length > 0 || transactionsPromises.length > 0) {
     Promise.all([...connectionsPromises, ...transactionsPromises]).finally(() => {
-      _sync.isRunning = false;
-      con.updateLocalConnections();
+      _onPostSync();
       console.log(`full sync completed for ${connectionsPromises.length} connections.. ${transactions.getLength()} txs..`);
     })
   } else {
-    _sync.isRunning = false;
-    con.updateLocalConnections();
+    _onPostSync();
     console.log(`full sync completed without connections.. waiting for next sync..`);
   }
 }
 
+function _onPostSync() {
+  _sync.isRunning = false;
+  con.updateLocalConnections();
+  const lastTxTime = transactions.onPostSync();
+
+  if (lastTxTime > 0 && env.SERVER_ID != env.CONNECTION_SERVER_ID) {
+    const transactionsUrl = `${con.connections[0].url}/transactions?from=${lastTxTime - 60000}&to=${lastTxTime - 10000}&all=true`;
+
+    axios.request({
+      timeout: 2000,
+      method: "GET",
+      url: transactionsUrl})
+    .then((res) => {
+      const serverTxs: Transaction[] = res.data;
+      const localTxs = transactions.getRange(lastTxTime - 60000, lastTxTime - 10000);
+
+      if (serverTxs.length != localTxs.length) {
+        throw `mismatch at server ${serverTxs.length} txs, local ${localTxs.length} txs, check sync logic!`;
+      }
+
+      for (let i=0; i<serverTxs.length; i++) {
+        if (serverTxs[i].id != localTxs[i].id) {
+          throw `mismatch at server id '${serverTxs[i].id}', local id '${localTxs[i].id}', check sync logic!`;
+        }
+      }
+
+      console.log(`validated ${serverTxs.length} txs from ${lastTxTime - 60000} to ${lastTxTime - 10000}`);
+    })
+    .catch((e) => {
+      console.log(e);
+      console.warn(`error thrown during GET ${transactionsUrl}`);
+    });
+  }
+}
