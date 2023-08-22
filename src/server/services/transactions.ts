@@ -92,6 +92,8 @@ export function _onReceivedPeerTransactions(allPeerTransactions: Transaction[]) 
     count += addTransaction(uniqueTxs[i]) ? 1 : 0;
   }
 
+
+
   return count;
 }
 
@@ -143,4 +145,8 @@ export function getSummary(clientId: string) {
 
 export function getAll(): Transaction[] {
   return _transactions;
+}
+
+export function getOne(id: string) {
+  return _transactionIdMap[id];
 }

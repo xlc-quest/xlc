@@ -49,7 +49,9 @@ export function _extendConnections(id: string, url?: string): Connection[] {
   return connections;
 }
 
-export function updateLocalConnections(now: number) {
+export function updateLocalConnections() {
+  const now = new Date().getTime();
+  
   let index = connections.findIndex((c) => c.id != env.CONNECTION_SERVER_ID && c.expiry && c.expiry < now);
   while (index > -1) {
     console.log(`removing inactive connection... ${connections[index].id}`);

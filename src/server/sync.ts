@@ -16,7 +16,10 @@ export function startSync() {
   console.log(`setting up initial connections..`);
   const now = new Date().getTime();
 
-  axios.get(`${con.connections[0].url}/connections?id=${env.SERVER_ID}&url=${env.SERVER_URL}`)
+  axios.request({
+    timeout: 2000,
+    method: "GET",
+    url: `${con.connections[0].url}/connections?id=${env.SERVER_ID}&url=${env.SERVER_URL}`})
   .then((res) => {
     const connection: Connection = res.data[0];
     con.connections[0].registeredTime = connection.registeredTime || now;
@@ -65,8 +68,7 @@ function _updateInfluence(c: Connection) {
 }
 
 function _onSync() {
-  const now = new Date().getTime();
-  con.updateLocalConnections(now);
+  con.updateLocalConnections();
   
   if (_sync.isRunning) {
     console.log(`full sync is already running.. skipping..`);
@@ -85,6 +87,7 @@ function _onSync() {
   const connectionsPromises: Promise<void>[] = [];
 
   const allPeerTransactions: Transaction[] = [];
+  const allPeerTxMap: { [serverId: string]: Transaction[] } = {};
   const transactionsPromises: Promise<void>[] = [];
 
   con.connections.forEach(async (c) => {
@@ -92,7 +95,10 @@ function _onSync() {
 
     console.log(`hadnling sync from ${c.id}(${c.url})..`);
     const connectionsPromise = axios
-      .get(`${c.url}/connections?id=${env.SERVER_ID}&url=${env.SERVER_URL}`)
+      .request({
+        timeout: 2000,
+        method: "GET",
+        url: `${c.url}/connections?id=${env.SERVER_ID}&url=${env.SERVER_URL}`})
       .then((res) => {
         let peerConnections: Connection[] = res.data;
         peerConnections.forEach((pc) => {
@@ -109,20 +115,26 @@ function _onSync() {
       })
       .catch((e) => {
         console.log(e);
-        console.warn(`error thrown during GET ${c.url}/connections`);
+        console.warn(`error thrown during GET ${c.url}/connections?id=${env.SERVER_ID}&url=${env.SERVER_URL}`);
+        con.updateLocalConnections();
       });
 
     connectionsPromises.push(connectionsPromise);
     
     console.log(`last sync time of ${c.id}(${c.url}).. ${_sync.lastTxSyncTime[c.id]}`);
     const transactionsUrl = `${c.url}/transactions${_sync.lastTxSyncTime[c.id] ?
-      `?from=${(_sync.lastTxSyncTime[c.id])-60000}&` : `?`}all=true`;
+      `?from=${(_sync.lastTxSyncTime[c.id])}&` : `?`}all=true`;
 
     const transactionsPromise = axios
-      .get(transactionsUrl)
+      .request({
+        timeout: 5000,
+        method: "GET",
+        url: transactionsUrl})
       .then((res) => {
         let peerTransactions: Transaction[] = res.data;
         console.log(`received ${peerTransactions.length} transactions..`);
+
+        allPeerTxMap[c.id] = peerTransactions;
         peerTransactions.forEach((pt) => {
           let apt = allPeerTransactions.find((apt) => pt.id == apt.id);
           if (!apt) {
@@ -132,11 +144,15 @@ function _onSync() {
           }
         });
 
-        _sync.lastTxSyncTime[c.id] = now;
+        const lastSyncTime = peerTransactions.reduce((time, t) => {
+          return time < t.time ? t.time : time;
+        }, 0);
+        _sync.lastTxSyncTime[c.id] = lastSyncTime;
       })
       .catch((e) => {
         console.log(e);
-        console.warn(`error thrown during GET ${c.url}/connections`);
+        console.warn(`error thrown during GET ${c.url}/${transactionsUrl}`);
+        con.updateLocalConnections();
       });
 
     transactionsPromises.push(transactionsPromise);
@@ -155,14 +171,20 @@ function _onSync() {
         }
       }
     });
-
-    con.updateLocalConnections(now);
   });
 
   let newCount = 0;
   Promise.all(transactionsPromises).then(() => {
     console.log(`..processing ${allPeerTransactions.length} new peer transactions..`);
-    newCount = transactions._onReceivedPeerTransactions(allPeerTransactions);
+
+    const newTxs = allPeerTransactions.reduce((txs: Transaction[], t) => {
+      if (!transactions.getOne(t.id)) {
+        txs.push(t);
+      }
+      return txs;
+    }, []);
+
+    newCount = transactions._onReceivedPeerTransactions(newTxs);
     console.log(`..added ${newCount} new transactions..`);
     return Promise.all(connectionsPromises);
   });
@@ -170,10 +192,12 @@ function _onSync() {
   if (connectionsPromises.length > 0 || transactionsPromises.length > 0) {
     Promise.all([...connectionsPromises, ...transactionsPromises]).finally(() => {
       _sync.isRunning = false;
+      con.updateLocalConnections();
       console.log(`full sync completed for ${connectionsPromises.length} connections.. ${transactions.getLength()} txs..`);
     })
   } else {
     _sync.isRunning = false;
+    con.updateLocalConnections();
     console.log(`full sync completed without connections.. waiting for next sync..`);
   }
 }
