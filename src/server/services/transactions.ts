@@ -155,14 +155,16 @@ export function getOne(id: string) {
   return _transactionIdMap[id];
 }
 
-export function getLastTxFileTime() {
+export function getLastTxFileTime(): number {
   if (!fs.existsSync(DATA_ROOT)) throw `DATA_ROOT not set, check onStart..`;
+
+  let firstTxTime = _transactions.length > 0 ? _transactions[0].time : 0;
 
   const txFiles = fs.readdirSync(DATA_ROOT);
   return txFiles.reduce((lastTxTime, t) =>  {
      const txTime = Number(t.split('-')[1]);
      return lastTxTime > txTime ? lastTxTime : txTime;
-  }, _transactions[0].time);
+  }, firstTxTime);
 }
 
 export function onPostSync(): number {
