@@ -170,7 +170,7 @@ export function getRange(from: number, to: number) {
   return _transactions.filter(t => from <= t.time && t.time <= to);
 }
 
-export function filter(filterFunc: (t: Transaction) => boolean) {
+export function getFiltered(filterFunc: (t: Transaction) => boolean) {
   return _transactions.filter(filterFunc);
 }
 
