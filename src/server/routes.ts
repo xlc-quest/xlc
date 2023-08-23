@@ -5,6 +5,7 @@ import { _extendConnections, connections } from './services/connections';
 import * as env from './env';
 import axios from 'axios';
 import * as transactions from './services/transactions';
+import * as rewards from './services/rewards';
 
 const router = express.Router();
 

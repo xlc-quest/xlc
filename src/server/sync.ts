@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as lockfile from 'proper-lockfile';
 import * as transactions from './services/transactions';
 import * as rewards from './services/rewards';
+import { RewardType } from "./services/rewards";
 
 const _sync = {
   isRunning: true,
@@ -88,7 +89,7 @@ function _onSync() {
       c.id != env.CONNECTION_SERVER_ID &&
       c.id != '@root' &&
       c.id != env.SERVER_ID) {
-      rewards.tryPost(c);
+      rewards.tryPost(c, RewardType.CONNECTION);
     }
   });
 
