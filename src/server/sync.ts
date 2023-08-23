@@ -14,9 +14,9 @@ const _sync = {
 }
 
 export function startAsync(): Promise<void> {
-  console.log(`setting up initial connections..`);
   const now = new Date().getTime();
 
+  console.log(`setting up initial connections..`);
   return axios.request({
     timeout: 2000,
     method: "GET",
@@ -24,7 +24,9 @@ export function startAsync(): Promise<void> {
   .then((res) => {
     const connection: Connection = res.data[0];
     con.connections[0].registeredTime = connection.registeredTime || now;
-    _sync.lastTxFileTime = transactions.onStart(con.connections[0].registeredTime);
+
+
+    _sync.lastTxFileTime = transactions.restoreFromFiles(con.connections[0].registeredTime);
 
     // connection sync process
     con.startSync();

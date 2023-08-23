@@ -3,6 +3,7 @@ import * as env from "../env";
 import * as fs from 'fs';
 import * as lockfile from 'proper-lockfile';
 import * as crypto from 'crypto';
+//import * as JSONStream from 'JSONStream';
 
 const _transactions: Transaction[] = [];
 const _transactionIdMap: { [key: string]: Transaction } = {};
@@ -25,7 +26,7 @@ function _mergeAndSortTransactions(txs: Transaction[]): Transaction[] {
   return uniqueTxs;
 }
 
-export function onStart(registeredTime: number): number {
+export function restoreFromFiles(registeredTime: number): number {
     let lastTxFileTime = registeredTime;
     DATA_ROOT = `./data/${env.SERVER_ID}/transactions/${registeredTime}`;
     if (!fs.existsSync(DATA_ROOT)){
@@ -39,31 +40,40 @@ export function onStart(registeredTime: number): number {
          return lastTxTime > txTime ? lastTxTime : txTime;
       }, 0);
 
+      console.log(`restoring txs from ${txFiles.length} files..`);
       for (let i=0; i<txFiles.length; i++) {
-        const txFile = fs.readFileSync(`${DATA_ROOT}/${txFiles[i]}`);
-        const txJson = JSON.parse(txFile.toString());
+        const txFileBuffer = fs.readFileSync(`${DATA_ROOT}/${txFiles[i]}`);
+        const txJson = JSON.parse(txFileBuffer.toString());
+
+        _transactions.push(...txJson);
         for (let i=0; i<txJson.length; i++) {
-          addTransaction(txJson[i]);
+          _transactionIdMap[_transactions[i].id] = _transactions[i];
         }
         
         console.log(`restored ${_transactions.length} txs from ${txFiles[i]}..`);
       }
     }
 
+    if (_transactions.length != Object.keys(_transactionIdMap).length) {
+      throw `transaction list (${_transactions.length}) and map (${Object.keys(_transactionIdMap).length}) mismatch!! cannot proceed!!`;
+    }
+
     return _transactions.length > 0 ? lastTxFileTime : 0;
 }
 
-export function tryPostReward(to: string, probability: number) {
+export function tryPostReward(to: string, influence: number) {
     const now = new Date().getTime();
 
-    const recentRewardTx = _transactions.find((t) => t.from == env.SERVER_ID && t.to == to && t.time > now - 10000);
+    const recentRewardTx = _transactions.find((t) => t.from == env.SERVER_ID && t.to == to && t.time > now - 60000);
     if (!recentRewardTx) {
       const reward = Math.floor(Math.random() * 10)/10000;
       // console.log(`${c.id}\
       //   \nweight: ${weight}, serverAge: ${serverAge}s, connectionAge: ${connectionAge}s, \
       //   \nconnectionWeight: ${connectionAge / serverAge}, influence: ${c.influence.toFixed(1)}`);
       // console.log(`${c.id} influence ${(c.influence*100).toFixed(1)}%`);
-      const prob = .1 + probability;
+
+      const adjustment = 0;//.1;
+      const prob = influence + adjustment;
 
       if (_isStrike(prob)) {
         console.log(`!!*#*#*STRIKE*#*#*!! for ${to}..`);
@@ -93,7 +103,7 @@ export function _onReceivedPeerTransactions(newPeerTxs: Transaction[]) {
 
 export function addTransaction(tx: Transaction): boolean {
   if (_transactions.length != Object.keys(_transactionIdMap).length) {
-      throw `transaction list and map mismatch.. cannot proceed..`;
+      throw `transaction list (${_transactions.length}) and map (${Object.keys(_transactionIdMap).length}) mismatch!! cannot proceed!!`;
   }
 
   let listTx = _transactions.find((t) => t.id == tx.id);
@@ -165,7 +175,7 @@ export function onPostSync(): number {
 
   const lastTxTime = _transactions[_transactions.length-1].time;
   const lastTxFileTime = getLastTxFileTime();
-  const dataStoreCadence = 1200000;
+  const dataStoreCadence = 4 * 3600000;
 
   if (lastTxTime - lastTxFileTime > dataStoreCadence) {
     const txBlock = _transactions.filter(t => t.time >= lastTxFileTime);
