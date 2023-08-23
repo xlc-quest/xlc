@@ -9,6 +9,6 @@ app.use(express.static('public'));
 app.use(express.json());
 app.use(apiRouter);
 
-app.listen(env.SERVER_PORT, () => console.log(`server listening on port: ${env.SERVER_PORT}..`));
-
-sync.startSync();
+sync.startAsync().then(() => {
+    app.listen(env.SERVER_PORT, () => console.log(`server listening on port: ${env.SERVER_PORT}..`));
+});

@@ -13,10 +13,11 @@ const _sync = {
   lastTxSyncTime: <{ [key: string]: number }>{},
 }
 
-export function startSync() {
+export function startAsync(): Promise<void> {
   console.log(`setting up initial connections..`);
   const now = new Date().getTime();
-  axios.request({
+
+  return axios.request({
     timeout: 2000,
     method: "GET",
     url: `${con.connections[0].url}/connections?id=${env.SERVER_ID}&url=${env.SERVER_URL}`})
@@ -24,6 +25,19 @@ export function startSync() {
     const connection: Connection = res.data[0];
     con.connections[0].registeredTime = connection.registeredTime || now;
     _sync.lastTxFileTime = transactions.onStart(con.connections[0].registeredTime);
+
+    // connection sync process
+    con.startSync();
+
+    setInterval(() => {
+      try {
+        _onSync();
+      } catch (e) {
+        console.log(e);
+        _sync.isRunning = false;
+        console.warn(`full sync crashed with error.. waiting for next sync..`);
+      };
+    }, 5000);
   }).catch(e => {
     console.log(e);
     console.error(`failed to connect. please check @connections server`);
@@ -31,19 +45,6 @@ export function startSync() {
   }).finally(() => {
     _sync.isRunning = false;
   });
-
-  // connection sync process
-  con.startSync();
-
-  setInterval(() => {
-    try {
-      _onSync();
-    } catch (e) {
-      console.log(e);
-      _sync.isRunning = false;
-      console.warn(`full sync crashed with error.. waiting for next sync..`);
-    };
-  }, 5000);
 }
 
 function _updateInfluence(c: Connection) {
@@ -176,8 +177,7 @@ function _onSync() {
       }
     });
   });
-
-  let newCount = 0;
+  
   Promise.all(transactionsPromises).then(() => {
     console.log(`..processing ${allPeerTransactions.length} new peer transactions..`);
 
@@ -211,10 +211,10 @@ function _onSync() {
 function _onPostSync() {
   _sync.isRunning = false;
   con.updateLocalConnections();
-  const lastTxTime = transactions.onPostSync();
-
-  if (lastTxTime > 0 && env.SERVER_ID != env.CONNECTION_SERVER_ID) {
-    const transactionsUrl = `${con.connections[0].url}/transactions?from=${lastTxTime - 60000}&to=${lastTxTime - 10000}&all=true`;
+  const validateToTime = transactions.getLastTxFileTime() - 60000; // -1 min from the last tx time
+  if (validateToTime > 0 && env.SERVER_ID != env.CONNECTION_SERVER_ID) {
+    const validateFromTime = validateToTime - 3600000; // look back -60 mins
+    const transactionsUrl = `${con.connections[0].url}/transactions?from=${validateFromTime}&to=${validateToTime}&all=true`;
 
     axios.request({
       timeout: 2000,
@@ -222,7 +222,7 @@ function _onPostSync() {
       url: transactionsUrl})
     .then((res) => {
       const serverTxs: Transaction[] = res.data;
-      const localTxs = transactions.getRange(lastTxTime - 60000, lastTxTime - 10000);
+      const localTxs = transactions.getRange(validateFromTime, validateToTime);
 
       if (serverTxs.length != localTxs.length) {
         throw `mismatch at server ${serverTxs.length} txs, local ${localTxs.length} txs, check sync logic!`;
@@ -234,7 +234,8 @@ function _onPostSync() {
         }
       }
 
-      console.log(`validated ${serverTxs.length} txs from ${lastTxTime - 60000} to ${lastTxTime - 10000}`);
+      console.log(`validated ${serverTxs.length} txs from ${validateFromTime} to ${validateToTime}`);
+      transactions.onPostSync();
     })
     .catch((e) => {
       console.log(e);

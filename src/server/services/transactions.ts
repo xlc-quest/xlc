@@ -145,7 +145,7 @@ export function getOne(id: string) {
   return _transactionIdMap[id];
 }
 
-function _getLastTxFileTime() {
+export function getLastTxFileTime() {
   if (!fs.existsSync(DATA_ROOT)) throw `DATA_ROOT not set, check onStart..`;
 
   const txFiles = fs.readdirSync(DATA_ROOT);
@@ -164,7 +164,7 @@ export function onPostSync(): number {
   if (!fs.existsSync(DATA_ROOT)) throw `DATA_ROOT not set, check onStart..`;
 
   const lastTxTime = _transactions[_transactions.length-1].time;
-  const lastTxFileTime = _getLastTxFileTime();
+  const lastTxFileTime = getLastTxFileTime();
   const dataStoreCadence = 1200000;
 
   if (lastTxTime - lastTxFileTime > dataStoreCadence) {
