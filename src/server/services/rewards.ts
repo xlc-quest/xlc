@@ -1,6 +1,7 @@
 import { Connection } from "../models";
 import * as transactions from "./transactions";
 import * as env from "../env";
+import * as crypto from 'crypto';
 
 const REWARD_DEFAULT = .0001;
 const SERVER_REWARD_CONSTANT = 2;
@@ -27,7 +28,7 @@ export function tryPost(c: Connection, rwdType: RewardType) {
 
     const recentRewardTx = transactions.filter((t) => t.from == env.SERVER_ID && t.to == c.id && t.time > now - TRIAL_CADENCE);
     if (!recentRewardTx && c.influence) {
-      let bonusConstant = c.id.startsWith(`@server`) ? SERVER_REWARD_CONSTANT : CLIENT_REWARD_CONSTANT;
+      let bonusConstant = env.SERVER_ID.startsWith(`@server`) ? SERVER_REWARD_CONSTANT : CLIENT_REWARD_CONSTANT;
       switch (rwdType) {
         case RewardType.POST_TX:
             bonusConstant += POST_TX_REWARD_CONSTANT;
