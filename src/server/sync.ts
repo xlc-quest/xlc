@@ -6,6 +6,7 @@ import * as env from './env';
 import * as fs from 'fs';
 import * as lockfile from 'proper-lockfile';
 import * as transactions from './services/transactions';
+import * as rewards from './services/rewards';
 
 const _sync = {
   isRunning: true,
@@ -49,7 +50,7 @@ export function startAsync(): Promise<void> {
   });
 }
 
-function _updateInfluence(c: Connection) {
+function _updateInfluence(c: Connection, connectionAge: number) {
   const startTime = con.connections[0].registeredTime;
   if (!startTime) {
     console.warn(`connection server start time not set.. skipping..`);
@@ -57,17 +58,12 @@ function _updateInfluence(c: Connection) {
     return;
   }
 
-  const now = new Date().getTime();
   if (!c.registeredTime) return;
 
-  const connectionAge = (now - c.registeredTime)/1000;
+  const now = new Date().getTime();
   const weight = (1/con.connections.length);
-  const serverAge = (now - startTime)/1000;
+  const serverAge = now - startTime;
   c.influence = connectionAge > serverAge ? weight : (weight + (weight * connectionAge/serverAge))/2;
-
-  if (c.id != env.CONNECTION_SERVER_ID && c.id != '@root' && c.id != env.SERVER_ID && connectionAge > 10) {
-    transactions.tryPostReward(c.id, c.influence);
-  }
 }
 
 function _onSync() {
@@ -81,9 +77,19 @@ function _onSync() {
   _sync.isRunning = true;
 
 
-  console.log(`starting full sync on connections: ${con.connections.length}..`);  
+  console.log(`starting full sync on connections: ${con.connections.length}..`);
+  const now = new Date().getTime();
   con.connections.forEach(c => {
-    _updateInfluence(c);
+    if (!c.registeredTime) return;
+
+    const connectionAge = now - c.registeredTime;
+    _updateInfluence(c, connectionAge);
+    if (connectionAge > 30000 && (c.to == env.SERVER_ID || env.SERVER_ID == env.CONNECTION_SERVER_ID) &&
+        c.id != env.CONNECTION_SERVER_ID &&
+        c.id != '@root' &&
+        c.id != env.SERVER_ID) {
+      rewards.tryPost(c);
+    }
   });
 
   const allPeerConnections: Connection[] = [];

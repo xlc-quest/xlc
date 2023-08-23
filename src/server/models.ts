@@ -14,4 +14,5 @@ export interface Connection {
     url?: string;
     expiry?: number;
     influence?: number;
+    to: string;
 }

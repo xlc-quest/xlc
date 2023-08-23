@@ -9,10 +9,6 @@ const _transactions: Transaction[] = [];
 const _transactionIdMap: { [key: string]: Transaction } = {};
 let DATA_ROOT: string;
 
-function _isStrike(probability: number) {
-    return !!probability && Math.random() <= probability;
-}
-
 function _mergeAndSortTransactions(txs: Transaction[]): Transaction[] {
   const txIdMap: { [key: string]: Transaction } = {};
   for (let i=0; i<txs.length; i++) {
@@ -59,35 +55,6 @@ export function restoreFromFiles(registeredTime: number): number {
     }
 
     return _transactions.length > 0 ? lastTxFileTime : 0;
-}
-
-export function tryPostReward(to: string, influence: number) {
-    const now = new Date().getTime();
-
-    const recentRewardTx = _transactions.find((t) => t.from == env.SERVER_ID && t.to == to && t.time > now - 60000);
-    if (!recentRewardTx) {
-      const reward = Math.floor(Math.random() * 10)/10000;
-      // console.log(`${c.id}\
-      //   \nweight: ${weight}, serverAge: ${serverAge}s, connectionAge: ${connectionAge}s, \
-      //   \nconnectionWeight: ${connectionAge / serverAge}, influence: ${c.influence.toFixed(1)}`);
-      // console.log(`${c.id} influence ${(c.influence*100).toFixed(1)}%`);
-
-      const adjustment = 0;//.1;
-      const prob = influence + adjustment;
-
-      if (_isStrike(prob)) {
-        console.log(`!!*#*#*STRIKE*#*#*!! for ${to}..`);
-        addTransaction({
-          id: crypto.randomUUID(),
-          time: new Date().getTime(),
-          from: env.SERVER_ID,
-          to: to,
-          amount: reward > 0 ? reward : .0001,
-          message: `connection reward strike at ${(prob*100).toFixed(1)}%`,
-          by: env.SERVER_ID
-        });
-      }
-    }
 }
 
 export function _onReceivedPeerTransactions(newPeerTxs: Transaction[]) {
@@ -201,5 +168,9 @@ export function onPostSync(): number {
 }
 export function getRange(from: number, to: number) {
   return _transactions.filter(t => from <= t.time && t.time <= to);
+}
+
+export function filter(filterFunc: (t: Transaction) => boolean) {
+  return _transactions.filter(filterFunc);
 }
 

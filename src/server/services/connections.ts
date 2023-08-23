@@ -5,6 +5,7 @@ export const connections: Connection[] = [
   {
     id: env.CONNECTION_SERVER_ID,
     url: env.CONNECTION_SERVER_URLS[0],
+    to: env.SERVER_ID
   }
 ];
 
@@ -44,6 +45,7 @@ export function _extendConnections(id: string, url?: string): Connection[] {
     url: url,
     expiry: newExpiry,
     registeredTime: now,
+    to: env.SERVER_ID
   });
 
   return connections;
