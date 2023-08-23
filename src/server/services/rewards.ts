@@ -26,8 +26,8 @@ function _isStrike(probability: number) {
 export function tryPost(c: Connection, rwdType: RewardType) {
     const now = new Date().getTime();
 
-    const recentRewardTx = transactions.filter((t) => t.from == env.SERVER_ID && t.to == c.id && t.time > now - TRIAL_CADENCE);
-    if (!recentRewardTx && c.influence) {
+    const recentRewardTx = transactions.getFiltered((t) => t.from == env.SERVER_ID && t.to == c.id && t.time > now - TRIAL_CADENCE);
+    if (recentRewardTx.length == 0 && c.influence) {
       let bonusConstant = env.SERVER_ID.startsWith(`@server`) ? SERVER_REWARD_CONSTANT : CLIENT_REWARD_CONSTANT;
       switch (rwdType) {
         case RewardType.POST_TX:
