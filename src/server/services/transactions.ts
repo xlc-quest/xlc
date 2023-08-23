@@ -174,3 +174,11 @@ export function getFiltered(filterFunc: (t: Transaction) => boolean) {
   return _transactions.filter(filterFunc);
 }
 
+export function getLast() {
+  if (_transactions.length > 0) {
+    return _transactions[_transactions.length-1];
+  }
+
+  return undefined;
+}
+

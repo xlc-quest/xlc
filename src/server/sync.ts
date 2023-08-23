@@ -220,7 +220,8 @@ function _onSync() {
 function _onPostSync() {
   _sync.isRunning = false;
   con.updateLocalConnections();
-  const validateToTime = transactions.getLastTxFileTime() - 60000; // -1 min from the last tx time
+  const lastTx = transactions.getLast();
+  const validateToTime = !lastTx ? 0 : lastTx.time - 60000; // -1 min from the last tx time
   if (validateToTime > 0 && env.SERVER_ID != env.CONNECTION_SERVER_ID) {
     const validateFromTime = validateToTime - 3600000; // look back -60 mins
     const transactionsUrl = `${con.connections[0].url}/transactions?from=${validateFromTime}&to=${validateToTime}&all=true`;
