@@ -76,7 +76,6 @@ function _onSync() {
 
   _sync.isRunning = true;
 
-
   console.log(`starting full sync on connections: ${con.connections.length}..`);
   const now = new Date().getTime();
   con.connections.forEach(c => {
@@ -84,10 +83,11 @@ function _onSync() {
 
     const connectionAge = now - c.registeredTime;
     _updateInfluence(c, connectionAge);
-    if (connectionAge > 30000 && (c.to == env.SERVER_ID || env.SERVER_ID == env.CONNECTION_SERVER_ID) &&
-        c.id != env.CONNECTION_SERVER_ID &&
-        c.id != '@root' &&
-        c.id != env.SERVER_ID) {
+    if ((c.to == env.SERVER_ID || env.SERVER_ID == env.CONNECTION_SERVER_ID) &&
+      connectionAge > rewards.TRIAL_CADENCE &&
+      c.id != env.CONNECTION_SERVER_ID &&
+      c.id != '@root' &&
+      c.id != env.SERVER_ID) {
       rewards.tryPost(c);
     }
   });
