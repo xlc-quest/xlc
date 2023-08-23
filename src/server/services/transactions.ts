@@ -40,18 +40,20 @@ export function restoreFromFiles(registeredTime: number): number {
       for (let i=0; i<txFiles.length; i++) {
         const txFileBuffer = fs.readFileSync(`${DATA_ROOT}/${txFiles[i]}`);
         const txJson = JSON.parse(txFileBuffer.toString());
-
-        _transactions.push(...txJson);
+        
         for (let i=0; i<txJson.length; i++) {
-          _transactionIdMap[_transactions[i].id] = _transactions[i];
+          const tx = getOne(txJson[i]);
+          if (!_transactionIdMap[txJson[i].id]) {
+            _transactionIdMap[txJson[i].id] = txJson[i];
+            _transactions.push(txJson[i]);
+          }
         }
         
         console.log(`restored ${_transactions.length} txs from ${txFiles[i]}..`);
+        if (_transactions.length != Object.keys(_transactionIdMap).length) {
+          throw `transaction list (${_transactions.length}) and map (${Object.keys(_transactionIdMap).length}) mismatch!! cannot proceed!!`;
+        }
       }
-    }
-
-    if (_transactions.length != Object.keys(_transactionIdMap).length) {
-      throw `transaction list (${_transactions.length}) and map (${Object.keys(_transactionIdMap).length}) mismatch!! cannot proceed!!`;
     }
 
     return _transactions.length > 0 ? lastTxFileTime : 0;
