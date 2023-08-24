@@ -246,9 +246,15 @@ function _onSync() {
   Promise.all(contractsPromises).then(() => {
     console.log(`..processing ${allPeerContracts.length} contract updates..`);
 
-    const updatedContracts = allPeerContracts.reduce((updates: Contract[], t) => {
-      if (!contracts.getOne(t.id)) {
-        updates.push(t);
+    const updatedContracts = allPeerContracts.reduce((updates: Contract[], update) => {
+      const c = contracts.getOne(update.id);
+      if (!c) {
+        updates.push(update);
+      } else {
+        const lastUpdatedTime = update.times[update.times.length-1];
+        if (lastUpdatedTime > c.times[c.times.length-1]) {
+          updates.push(update);
+        }
       }
       return updates;
     }, []);
