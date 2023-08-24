@@ -17,24 +17,32 @@ const _sync = {
   lastContractSyncTime: <{ [key: string]: number }>{}
 }
 
-export function startAsync(): Promise<void> {
-  const now = new Date().getTime();
-
+export function startAsync(): Promise<Connection[]> {
   console.log(`setting up initial connections..`);
-  return axios.request({
-    timeout: 2000,
-    method: "GET",
-    url: `${con.connections[0].url}/connections?id=${env.SERVER_ID}&url=${env.SERVER_URL}`})
-  .then((res) => {
-    const connection: Connection = res.data[0];
-    con.connections[0].registeredTime = connection.registeredTime || now;
+  let promise: Promise<Connection[]>;
+  if (env.SERVER_ID == env.CONNECTION_SERVER_ID) {
+    promise = new Promise<Connection[]>(() => {
+      return [];
+    });
+  } else {
+    promise = axios.request({
+      timeout: 2000,
+      method: "GET",
+      url: `${con.connections[0].url}/connections?id=${env.SERVER_ID}&url=${env.SERVER_URL}`});
+  }
 
-
-    _sync.lastTxFileTime = transactions.restoreFromFiles(con.connections[0].registeredTime);
+  promise.then((data) => {
+    con.connections[0].registeredTime = new Date().getTime();  
+    if (data && data.length > 0) {
+      const connection: Connection = data[0];
+      con.connections[0].registeredTime = connection.registeredTime;  
+    }
+    
+    
+    _sync.lastTxFileTime = transactions.restoreFromFiles(con.connections[0].registeredTime as number);
 
     // connection sync process
     con.startSync();
-
     setInterval(() => {
       try {
         _onSync();
@@ -51,6 +59,8 @@ export function startAsync(): Promise<void> {
   }).finally(() => {
     _sync.isRunning = false;
   });
+  
+  return promise;
 }
 
 function _updateInfluence(c: Connection, connectionAge: number) {
