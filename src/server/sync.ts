@@ -221,9 +221,9 @@ function _onPostSync() {
   _sync.isRunning = false;
   con.updateLocalConnections();
   const lastTx = transactions.getLast();
-  const validateToTime = !lastTx ? 0 : lastTx.time - 60000; // -1 min from the last tx time
+  const validateToTime = !lastTx ? 0 : lastTx.time - 1000; // -1 s from the last tx time
   if (validateToTime > 0 && env.SERVER_ID != env.CONNECTION_SERVER_ID) {
-    const validateFromTime = validateToTime - 3600000; // look back -60 mins
+    const validateFromTime = validateToTime - 60000; // look back -1 min
     const transactionsUrl = `${con.connections[0].url}/transactions?from=${validateFromTime}&to=${validateToTime}&all=true`;
 
     axios.request({
