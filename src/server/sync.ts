@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Connection, Transaction } from "./models";
+import { Connection, Contract, Transaction } from "./models";
 import * as con from "./services/connections";
 import * as crypto from 'crypto'
 import * as env from './env';
@@ -8,11 +8,13 @@ import * as lockfile from 'proper-lockfile';
 import * as transactions from './services/transactions';
 import * as rewards from './services/rewards';
 import { RewardType } from "./services/rewards";
+import * as contracts from './services/contracts';
 
 const _sync = {
   isRunning: true,
   lastTxFileTime: 0,
   lastTxSyncTime: <{ [key: string]: number }>{},
+  lastContractSyncTime: <{ [key: string]: number }>{}
 }
 
 export function startAsync(): Promise<void> {
@@ -97,8 +99,10 @@ function _onSync() {
   const connectionsPromises: Promise<void>[] = [];
 
   const allPeerTransactions: Transaction[] = [];
-  const allPeerTxMap: { [serverId: string]: Transaction[] } = {};
   const transactionsPromises: Promise<void>[] = [];
+
+  const allPeerContracts: Contract[] = [];
+  const contractsPromises: Promise<void>[] = [];
 
   con.connections.forEach(async (c) => {
     if (!c.url || c.url == env.SERVER_URL || c.url.includes('localhost') || c.url.includes('127.0.0.1')) return;
@@ -148,7 +152,6 @@ function _onSync() {
         let peerTransactions: Transaction[] = res.data;
         console.log(`received ${peerTransactions.length} transactions..`);
 
-        allPeerTxMap[c.id] = peerTransactions;
         peerTransactions.forEach((pt) => {
           let apt = allPeerTransactions.find((apt) => pt.id == apt.id);
           if (!apt) {
@@ -170,6 +173,41 @@ function _onSync() {
       });
 
     transactionsPromises.push(transactionsPromise);
+
+    const contractsUrl = `${c.url}/contracts${_sync.lastContractSyncTime[c.id] ?
+      `?from=${(_sync.lastContractSyncTime[c.id])}&` : `?`}all=true`;
+
+    const contractsPromise = axios
+      .request({
+        timeout: 5000,
+        method: "GET",
+        url: contractsUrl})
+      .then((res) => {
+        let peerContracts: Contract[] = res.data;
+        console.log(`received ${peerContracts.length} contracts..`);
+
+        peerContracts.forEach((pc) => {
+          let apc = allPeerContracts.find((apc) => pc.id == apc.id);
+          if (!apc) {
+            allPeerContracts.push(pc);
+          } else {
+            // throw error if mismatch
+          }
+        });
+
+        const lastSyncTime = allPeerContracts.reduce((time, c) => {
+          const lasUpdatedTime = c.times.length > 0 ? c.times[c.times.length-1] : 0;
+          return time > lasUpdatedTime ? time : lasUpdatedTime;
+        }, 0);
+        _sync.lastContractSyncTime[c.id] = lastSyncTime;
+      })
+      .catch((e) => {
+        console.log(e);
+        console.warn(`error thrown during GET ${contractsUrl}`);
+        con.updateLocalConnections();
+      });
+
+    contractsPromises.push(contractsPromise);
   });
 
   Promise.all(connectionsPromises).then(() => {
@@ -197,19 +235,36 @@ function _onSync() {
       return txs;
     }, []);
 
-    const newCount = transactions._onReceivedPeerTransactions(newTxs);
+    const newCount = transactions.onReceivedPeerTransactions(newTxs);
     if (newTxs.length != newCount) {
       console.warn(`new transactions mismatch, could be racing condition..`);
     }
 
     console.log(`..added ${newCount} new transactions..`);
-    return Promise.all(connectionsPromises);
   });
 
-  if (connectionsPromises.length > 0 || transactionsPromises.length > 0) {
-    Promise.all([...connectionsPromises, ...transactionsPromises]).finally(() => {
+  Promise.all(contractsPromises).then(() => {
+    console.log(`..processing ${allPeerContracts.length} contract updates..`);
+
+    const updatedContracts = allPeerContracts.reduce((cs: Contract[], t) => {
+      if (!contracts.getOne(t.id)) {
+        cs.push(t);
+      }
+      return cs;
+    }, []);
+
+    const updatedCount = contracts.onReceivedPeerContracts(updatedContracts);
+    if (updatedContracts.length != updatedCount) {
+      console.warn(`updated contracts mismatch, could be racing condition..`);
+    }
+
+    console.log(`..updated ${updatedCount} contracts..`);
+  });
+
+  if (connectionsPromises.length > 0 || transactionsPromises.length > 0 || contractsPromises.length > 0) {
+    Promise.all([...connectionsPromises, ...transactionsPromises, ...connectionsPromises]).finally(() => {
       _onPostSync();
-      console.log(`full sync completed for ${connectionsPromises.length} connections.. ${transactions.getLength()} txs..`);
+      console.log(`full sync completed for ${connectionsPromises.length} connections.. ${transactions.getLength()} txs.. ${contracts.getLength()} contracts..`);
     })
   } else {
     _onPostSync();

@@ -59,7 +59,7 @@ export function restoreFromFiles(registeredTime: number): number {
     return _transactions.length > 0 ? lastTxFileTime : 0;
 }
 
-export function _onReceivedPeerTransactions(newPeerTxs: Transaction[]) {
+export function onReceivedPeerTransactions(newPeerTxs: Transaction[]) {
   let count = 0;
 
   const uniqueTxs = _mergeAndSortTransactions(newPeerTxs);

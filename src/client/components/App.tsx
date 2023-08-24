@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { useBoolean, useSetInterval } from '@fluentui/react-hooks';
 
-import { useId, Text } from "@fluentui/react-components";
+import { useId, Text, Link } from "@fluentui/react-components";
 import { Stack, Label, TextField, Alignment, IStackStyles, IStackTokens, IStackItemStyles, StackItem, updateT, Icon } from '@fluentui/react';
 import { DetailsList, DetailsListLayoutMode, Selection, SelectionMode, IColumn } from '@fluentui/react/lib/DetailsList';
 import { MarqueeSelection } from '@fluentui/react/lib/MarqueeSelection';
 import { NeutralColors } from '@fluentui/theme';
 import { DefaultPalette } from '@fluentui/react/lib/Styling';
-import { DefaultButton, IconButton, PrimaryButton } from '@fluentui/react/lib/Button';
+import { ActionButton, DefaultButton, IconButton, PrimaryButton } from '@fluentui/react/lib/Button';
 
 import axios, { all } from 'axios';
 import { useState, useEffect, Dispatch, createContext, useContext } from 'react';
@@ -40,7 +40,8 @@ interface Transaction {
 	from?: string,
 	to?: string,
 	amount?: string,
-	message?: string
+	message?: string,
+	contracts?: any[]
 }
 
 //const transactions = [];
@@ -58,12 +59,13 @@ const App = (props: AppProps) => {
 		{ key: 'to', name: 'to', fieldName: 'to', 					minWidth: 50, maxWidth: 100, isResizable: true },
 		{ key: 'amount', name: 'amount', fieldName: 'amount', 		minWidth: 50, maxWidth: 80, isResizable: true },
 		{ key: 'message', name: 'message', fieldName: 'message', 	minWidth: 200, maxWidth: 500, isResizable: true },
+		{ key: 'actions', name: 'actions', fieldName: 'actions', 	minWidth: 200, maxWidth: 200, isResizable: true },
 	];
 
 	const onRefreshAsync = () => {
 		const getTxsUrl = client.id.toLowerCase() == '@root' ?
 			`${configs.serverUrl}/transactions?id=${client.id}&all=true` :
-			`${configs.serverUrl}/transactions?id=${client.id}`;
+			`${configs.serverUrl}/transactions?id=${client.id}&contracts=true`;
 		return axios
 		.get(getTxsUrl)
 		.then((txRes) => {
@@ -76,7 +78,8 @@ const App = (props: AppProps) => {
 					to: t.to,
 					time: new Date(t.time).toLocaleString(),
 					message: t.message,
-					amount: 'x$'+Number(t.amount).toFixed(4)
+					amount: 'x$'+Number(t.amount).toFixed(4),
+					contracts: t.contracts
 				})
 			});
 
@@ -113,7 +116,136 @@ const App = (props: AppProps) => {
 	const _onClickRefresh = () => {
 		setFilter('');
 		onRefreshAsync();
-	}
+	};
+
+	const _onClickLike = (txId?: string) => {
+		const tx = filteredTransactions.find(t => t.id == txId);
+		if (!tx) {
+			alert(`can't be!`);
+		}
+
+		let promise: Promise<void>;
+		const responseContract = tx.contracts ? tx.contracts.find((c: any) => c.type == 'responses') : undefined;
+		if (responseContract) {
+			promise = axios
+			.patch(`${configs.serverUrl}/contracts?id=${responseContract.id}`, {
+				args: ['like'],
+				contractor: client.id
+			});
+		} else {
+			promise = axios
+			.post(`${configs.serverUrl}/contracts`, {
+				txId: txId,
+				type: 'responses',
+				args: ['like'],
+				contractor: client.id
+			});
+		}
+
+		promise.then((res) => {
+			_onClickRefresh();
+		});
+	};
+
+	const _onClickDislike = (txId?: string) => {
+		const tx = filteredTransactions.find(t => t.id == txId);
+		if (!tx) {
+			alert(`can't be!`);
+		}
+
+		let promise: Promise<void>;
+		const responseContract = tx.contracts ? tx.contracts.find((c: any) => c.type == 'responses') : undefined;
+		if (responseContract) {
+			promise = axios
+			.patch(`${configs.serverUrl}/contracts?id=${responseContract.id}`, {
+				args: ['dislike'],
+				contractor: client.id
+			});
+		} else {
+			promise = axios
+			.post(`${configs.serverUrl}/contracts`, {
+				txId: txId,
+				type: 'responses',
+				args: ['dislike'],
+				contractor: client.id
+			});
+		}
+
+		promise.then((res) => {
+			_onClickRefresh();
+		});
+	};
+
+	const _renderItemColumn = (item: any, index: any, column: any) => {
+		const fieldContent = item[column.fieldName];
+		const tx = item as Transaction;
+
+		let likes = 0;
+		let liked = false;
+		let dislikes = 0;
+		let disliked = false;
+		let comments = 0;
+		if (tx.contracts && tx.contracts.length > 0) {
+			const responseContract = tx.contracts.find(c => c.type == 'responses');
+			const commentsContract = tx.contracts.find(c => c.type == 'comments');
+
+			if (responseContract) {
+				likes = responseContract.args.reduce((sum: number, v: string) => {
+					return sum += (v.toLowerCase() == 'like') ? 1: 0;
+				}, 0);
+
+				dislikes = responseContract.args.reduce((sum: number, v: string) => {
+					return sum += (v.toLowerCase() == 'dislike') ? 1: 0;
+				}, 0);
+				
+				const idx = responseContract.contractors.findIndex((c: string) => c == client.id);
+				if (idx >= 0) {
+					liked = responseContract.args[idx] == 'like';
+					disliked = responseContract.args[idx] == 'dislike';
+				}
+			}
+		}
+
+		switch (column.key) {
+			case 'actions':
+				return <Stack horizontal horizontalAlign='end'>
+					<ActionButton disabled={tx.from?.startsWith('@server') || tx.from?.startsWith('@connections')}
+						iconProps={{iconName: liked ? 'LikeSolid' : 'Like'}} text={likes.toLocaleString()} onClick={() => {_onClickLike(tx.id)}} />
+					<ActionButton disabled={tx.from?.startsWith('@server') || tx.from?.startsWith('@connections')}
+						iconProps={{iconName: disliked ? 'DislikeSolid' : 'Dislike'}} text={dislikes.toLocaleString()} onClick={() => {_onClickDislike(tx.id)}} />
+					<ActionButton disabled={tx.from?.startsWith('@server') || tx.from?.startsWith('@connections')}
+						iconProps={{iconName: 'Comment'}} text={comments.toString()} onClick={_onClickRefresh} />
+					<ActionButton disabled={tx.from?.startsWith('@server') || tx.from?.startsWith('@connections')}
+						iconProps={{iconName: 'Reply'}} onClick={_onClickRefresh} />
+				</Stack>
+			default:
+				return <span>{fieldContent}</span>;
+		}
+	};
+
+	// const _renderItemColumn = (item: Transaction, index: number, column: IColumn) => {
+	// 	const fieldContent = item[column.fieldName as keyof Transaction] as string;
+	
+	// 	switch (column.key) {
+	// 	//   case 'thumbnail':
+	// 	// 	return <Image src={fieldContent} width={50} height={50} imageFit={ImageFit.cover} />;
+	  
+	// 	//   case 'name':
+	// 	// 	return <Link href="#">{fieldContent}</Link>;
+	  
+	// 	//   case 'color':
+	// 	// 	return (
+	// 	// 	  <span
+	// 	// 		data-selection-disabled={true}
+	// 	// 		className={mergeStyles({ color: fieldContent, height: '100%', display: 'block' })}
+	// 	// 	  >
+	// 	// 		{fieldContent}
+	// 	// 	  </span>
+	// 	// 	);
+	// 	  	default:
+	// 			return <span>{fieldContent}</span>;
+	// 	}
+	//   }
 
 	useEffect(() => {
 		connections.start(setClient);
@@ -185,6 +317,7 @@ const App = (props: AppProps) => {
 					items={filteredTransactions}
 					columns={columns}
 					selectionMode={SelectionMode.none}
+					onRenderItemColumn={_renderItemColumn}
 					layoutMode={DetailsListLayoutMode.justified}
 					ariaLabelForSelectionColumn="Toggle selection"
 					ariaLabelForSelectAllCheckbox="Toggle selection for all items"

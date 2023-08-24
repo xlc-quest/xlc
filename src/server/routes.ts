@@ -6,6 +6,7 @@ import * as env from './env';
 import axios from 'axios';
 import * as transactions from './services/transactions';
 import * as rewards from './services/rewards';
+import * as contracts from './services/contracts';
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ router.get('/connections', (req, res) => {
         )
       );
 });
-  
+
 router.get('/transactions', (req, res) => {
     if (req.query.summary && String(req.query.summary).toLowerCase() == 'true') {
         const clientId = req.query.id && String(req.query.id) ? String(req.query.id) : env.SERVER_ID;
@@ -68,23 +69,29 @@ router.get('/transactions', (req, res) => {
         }
     
         const pageSize = 1000;
-        let sliceFrom = 0;
-        let sliceTo = filteredTxs.length > 0 ? filteredTxs.length : 0;
         if (!req.query.all || String(req.query.all).toLowerCase() != 'true') {
-            sliceFrom = filteredTxs.length > pageSize ? filteredTxs.length - pageSize : 0;
+            const sliceFrom = filteredTxs.length > pageSize ? filteredTxs.length - pageSize : 0;
+            const sliceTo = filteredTxs.length > 0 ? filteredTxs.length : 0;
+
+            filteredTxs = filteredTxs.slice(sliceFrom, sliceTo);
+
+            if (req.query.contracts && String(req.query.contracts).toLowerCase() == 'true') {
+                for (let i=0; i<filteredTxs.length; i++) {
+                    filteredTxs[i].contracts = contracts.getByTxId(filteredTxs[i].id);
+                }
+            }
         }
     
-        return res.status(200).json(filteredTxs.slice(sliceFrom, sliceTo));
+        return res.status(200).json(filteredTxs);
     }
 });
   
 router.post('/transactions', (req, res) => {
-    if (
-        !req.body.from ||
+    if (!req.body.from ||
         !req.body.to ||
         (!req.body.amount && !req.body.message)
     ) {
-        res.status(400).json({ error: `Invalid request body sent.` });
+        res.status(400).json({ error: `invalid request body sent.` });
         return;
     }
 
@@ -103,6 +110,103 @@ router.post('/transactions', (req, res) => {
     } else {
         res.status(400).json(`Invalid transaction`);
     }
+});
+
+router.get('/contracts', (req, res) => {
+    let filteredContracts = contracts.getAll();
+
+    if (req.query.by) {
+        const serverId = String(req.query.by);
+        filteredContracts = filteredContracts.filter(c => c.by == serverId);
+    }
+
+    if (req.query.from) {
+        const from = Number(req.query.from);
+        filteredContracts = filteredContracts.filter(c => from <= c.times[c.times.length-1]);
+    }
+
+    if (req.query.to) {
+        const to = Number(req.query.to);
+        filteredContracts = filteredContracts.filter(c => c.times[c.times.length-1] <= to);
+    }
+
+    res.status(200).json(filteredContracts);
+});
+
+router.post('/contracts', (req, res) => {
+    const contractType = req.body.type ? String(req.body.type).toLowerCase() : '';
+    if (!contractType || !(contractType == 'responses' || contractType == 'comments')) {
+        res.status(400).json({ error: `invalid contract type.` });
+        return;
+    }
+
+    const txId = req.body.txId ? String(req.body.txId) : '';
+    const tx = txId ? transactions.getOne(txId) : undefined;
+    if (!tx) {
+        res.status(400).json({ error: `invalid transaction ID.` });
+        return;
+    }
+
+    const args = req.body.args ? req.body.args : [];
+    if (args.length == 0) {
+        res.status(400).json({ error: `contract ags not supplied` });
+        return;
+    }
+
+    const contractor = req.body.contractor ? String(req.body.contractor) : '';
+    if (!contractor) {
+        res.status(400).json({ error: `contractor not defined.` });
+        return;
+    }
+
+    const now = new Date().getTime();
+
+    const c: models.Contract = {
+        id: crypto.randomUUID(),
+        state: 'executed',
+        type: contractType,
+        transactions: [tx.id],
+        args: [args[0]],
+        contractors: [contractor],
+        times: [now],
+        originator: tx.from,
+        registeredTime: now,
+        by: env.SERVER_ID
+    };
+    
+    if (!contracts.registerContract(c)) {
+        res.status(500).json({ error: `failed to register contract, post aborted.` });
+        return;
+    } else {
+        res.status(200).json(contracts.getOne(c.id));
+    };
+});
+
+router.patch('/contracts', (req, res) => {
+    const id = req.query.id ? String(req.query.id) : undefined;
+    if (!id) {
+        res.status(400).json({ error: `id not defined.` });
+        return;
+    }
+
+    const args = req.body.args ? req.body.args : [];
+    if (args.length == 0) {
+        res.status(400).json({ error: `contract ags not supplied` });
+        return;
+    }
+
+    const contractor = req.body.contractor ? String(req.body.contractor) : '';
+    if (!contractor) {
+        res.status(400).json({ error: `contractor not defined.` });
+        return;
+    }
+
+    if (!contracts.patch(id, args, contractor)) {
+        res.status(500).json({ error: `failed to patch contract, patch aborted.` });
+        return;
+    } else {
+        res.status(200).json(contracts.getOne(id));
+    };
 });
 
 export default router;
