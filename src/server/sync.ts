@@ -246,11 +246,11 @@ function _onSync() {
   Promise.all(contractsPromises).then(() => {
     console.log(`..processing ${allPeerContracts.length} contract updates..`);
 
-    const updatedContracts = allPeerContracts.reduce((cs: Contract[], t) => {
+    const updatedContracts = allPeerContracts.reduce((updates: Contract[], t) => {
       if (!contracts.getOne(t.id)) {
-        cs.push(t);
+        updates.push(t);
       }
-      return cs;
+      return updates;
     }, []);
 
     const updatedCount = contracts.onReceivedPeerContracts(updatedContracts);

@@ -64,18 +64,15 @@ export function onReceivedPeerContracts(updates: Contract[]): number {
         if (!c) {
             registerContract(updates[i]);
         } else {
-            c.state = updates[i].state;
-
-            for (let j=0; j<updates[i].transactions.length; j++) {
-                const tx = updates[i].transactions[j];
-                if (!c.transactions.includes(tx)) c.transactions.push(tx);
+            const lastUpdatedTime = updates[i].times[updates[i].times.length-1];
+            if (lastUpdatedTime > c.times[c.times.length-1]) {
+                c.state = updates[i].state;
+                c.args = updates[i].args;
+                c.contractors = updates[i].contractors;
+                c.times = updates[i].times;
+                count++;
             }
-            
-            c.args.push(...updates[i].args);
-            c.contractors.push(...updates[i].contractors);
-            c.times.push(...updates[i].times);
         }
-        count++;
     }
 
     // const uniqueTxs = _mergeAndSortContracts(updates);
