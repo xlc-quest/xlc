@@ -21,9 +21,7 @@ export function startAsync(): Promise<Connection[]> {
   console.log(`setting up initial connections..`);
   let promise: Promise<Connection[]>;
   if (env.SERVER_ID == env.CONNECTION_SERVER_ID) {
-    promise = new Promise<Connection[]>(() => {
-      return [];
-    });
+    promise = Promise.resolve([]);
   } else {
     promise = axios.request({
       timeout: 2000,
@@ -37,7 +35,6 @@ export function startAsync(): Promise<Connection[]> {
       const connection: Connection = data[0];
       con.connections[0].registeredTime = connection.registeredTime;  
     }
-    
     
     _sync.lastTxFileTime = transactions.restoreFromFiles(con.connections[0].registeredTime as number);
 
