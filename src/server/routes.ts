@@ -77,7 +77,7 @@ router.get('/transactions', (req, res) => {
 
             if (req.query.contracts && String(req.query.contracts).toLowerCase() == 'true') {
                 for (let i=0; i<filteredTxs.length; i++) {
-                    filteredTxs[i].contracts = contracts.getByTxId(filteredTxs[i].id);
+                    filteredTxs[i].contracts = contracts.getByTxId(filteredTxs[i].id, true);
                 }
             }
         }

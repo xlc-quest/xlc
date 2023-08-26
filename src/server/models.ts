@@ -36,6 +36,8 @@ export interface Contract {
     state: string;
     type: string;
     transactions: string[]; // tx1 - initiation, tx2 - completion, tx3? - validation, tx4? - completion
+    args?: string[];
+    contractors?: string[];
     updates: ContractUpdates[];
     originator: string;
     registeredTime: number;

@@ -36,8 +36,26 @@ export function getOne(id: string): Contract {
     return _contractIdMap[id];
 }
 
-export function getByTxId(id: string): Contract[] {
-    return _txIdContractsMap[id];
+export function getByTxId(id: string, flatten: boolean): Contract[] {
+    const contracts = _txIdContractsMap[id];
+    const args: string[] = [];
+    const contractors: string[] = [];
+    if (flatten && contracts) {
+        for (let i=0; i<contracts.length; i++) {
+            const c = contracts[i];
+            if (c.updates) {
+                for (let j=0; j<c.updates.length; j++) {
+                    args.push(...c.updates[j].args);
+                    contractors.push(c.updates[j].contractor);
+                }
+            }
+
+            c.args = args;
+            c.contractors = contractors;
+        }
+    }
+
+    return contracts;
 }
 
 export function patch(id: string, args: any, contractor: string) {
