@@ -203,8 +203,7 @@ function _onSync() {
         });
 
         const lastSyncTime = allPeerContracts.reduce((time, c) => {
-          const lasUpdatedTime = c.times.length > 0 ? c.times[c.times.length-1] : 0;
-          return time > lasUpdatedTime ? time : lasUpdatedTime;
+          return time > c.updatedTime ? time : c.updatedTime;
         }, 0);
         _sync.lastContractSyncTime[c.id] = lastSyncTime;
       })
@@ -258,8 +257,7 @@ function _onSync() {
       if (!c) {
         updates.push(update);
       } else {
-        const lastUpdatedTime = update.times[update.times.length-1];
-        if (lastUpdatedTime > c.times[c.times.length-1]) {
+        if (update.updatedTime > c.updatedTime) {
           updates.push(update);
         }
       }

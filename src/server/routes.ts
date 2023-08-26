@@ -122,12 +122,12 @@ router.get('/contracts', (req, res) => {
 
     if (req.query.from) {
         const from = Number(req.query.from);
-        filteredContracts = filteredContracts.filter(c => from <= c.times[c.times.length-1]);
+        filteredContracts = filteredContracts.filter(c => from <= c.updatedTime);
     }
 
     if (req.query.to) {
         const to = Number(req.query.to);
-        filteredContracts = filteredContracts.filter(c => c.times[c.times.length-1] <= to);
+        filteredContracts = filteredContracts.filter(c => c.updatedTime <= to);
     }
 
     res.status(200).json(filteredContracts);
@@ -166,11 +166,14 @@ router.post('/contracts', (req, res) => {
         state: 'executed',
         type: contractType,
         transactions: [tx.id],
-        args: [args[0]],
-        contractors: [contractor],
-        times: [now],
+        updates: [{
+            args: args,
+            contractor: contractor,
+            time: now,
+        }],
         originator: tx.from,
         registeredTime: now,
+        updatedTime: now,
         by: env.SERVER_ID
     };
     

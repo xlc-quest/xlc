@@ -42,11 +42,18 @@ export function getByTxId(id: string): Contract[] {
 
 export function patch(id: string, args: any, contractor: string) {
     const c = getOne(id);
-    if (!c) return false;
+    if (!c) {
+        console.error(`given contract id ${id} not found..`);
+        return false;
+    }
 
-    c.args.push(...args);
-    c.contractors.push(contractor);
-    c.times.push(new Date().getTime());
+    const now = new Date().getTime();
+    c.updatedTime = now;
+    c.updates.push({
+        args: args,
+        contractor: contractor,
+        time: now
+    })
 
     return true;
 }
@@ -55,22 +62,23 @@ export function getLength(): number {
   return _contracts.length;
 }
 
-export function onReceivedPeerContracts(updates: Contract[]): number {
+export function onReceivedPeerContracts(updatedContracts: Contract[]): number {
     let count = 0;
 
-    updates.sort((ua, ub) => (ua.times[ua.times.length-1] < ub.times[ub.times.length-1] ? -1 : 1));
-    for (let i=0; i<updates.length; i++) {
-        const c = getOne(updates[i].id);
+    updatedContracts.sort((ua, ub) => (ua.updatedTime < ub.updatedTime ? -1 : 1));
+    for (let i=0; i<updatedContracts.length; i++) {
+        const c = getOne(updatedContracts[i].id);
         if (!c) {
-            registerContract(updates[i]);
+            registerContract(updatedContracts[i]);
         } else {
-            const lastUpdatedTime = updates[i].times[updates[i].times.length-1];
-            if (lastUpdatedTime > c.times[c.times.length-1]) {
-                c.state = updates[i].state;
-                c.args = updates[i].args;
-                c.contractors = updates[i].contractors;
-                c.times = updates[i].times;
-                count++;
+            if (c.updatedTime < updatedContracts[i].updatedTime) {
+                for (let j=0; j<updatedContracts[i].updates.length; j++) {
+                    if (!c.updates.find((u) => u.contractor == updatedContracts[i].updates[j].contractor && u.time == updatedContracts[i].updates[j].time)) {
+                        c.updates.push(updatedContracts[i].updates[j]);
+                    }
+
+                    count++;
+                }
             }
         }
     }
