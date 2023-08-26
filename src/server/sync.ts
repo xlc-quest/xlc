@@ -197,9 +197,9 @@ function _onSync() {
           let apc = allPeerContracts.find((apc) => pc.id == apc.id);
           if (!apc) {
             allPeerContracts.push(pc);
-          } else {
-            // throw error if mismatch
-          }
+          } else if (apc.updatedTime < pc.updatedTime) {
+            allPeerContracts.push(pc);
+          } else ;
         });
 
         const lastSyncTime = allPeerContracts.reduce((time, c) => {

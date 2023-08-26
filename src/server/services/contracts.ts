@@ -38,9 +38,11 @@ export function getOne(id: string): Contract {
 
 export function getByTxId(id: string, flatten: boolean): Contract[] {
     const contracts = _txIdContractsMap[id];
-    const args: string[] = [];
-    const contractors: string[] = [];
+
     if (flatten && contracts) {
+        const args: string[] = [];
+        const contractors: string[] = [];
+        
         for (let i=0; i<contracts.length; i++) {
             const c = contracts[i];
             if (c.updates) {
@@ -52,6 +54,7 @@ export function getByTxId(id: string, flatten: boolean): Contract[] {
 
             c.args = args;
             c.contractors = contractors;
+            c.updates = undefined;
         }
     }
 
@@ -60,7 +63,7 @@ export function getByTxId(id: string, flatten: boolean): Contract[] {
 
 export function patch(id: string, args: any, contractor: string) {
     const c = getOne(id);
-    if (!c) {
+    if (!c || !c.updates) {
         console.error(`given contract id ${id} not found..`);
         return false;
     }
@@ -89,10 +92,11 @@ export function onReceivedPeerContracts(updatedContracts: Contract[]): number {
         if (!c) {
             registerContract(updatedContracts[i]);
         } else {
-            if (c.updatedTime < updatedContracts[i].updatedTime) {
-                for (let j=0; j<updatedContracts[i].updates.length; j++) {
-                    if (!c.updates.find((u) => u.contractor == updatedContracts[i].updates[j].contractor && u.time == updatedContracts[i].updates[j].time)) {
-                        c.updates.push(updatedContracts[i].updates[j]);
+            const updates = updatedContracts[i].updates;
+            if (c.updatedTime < updatedContracts[i].updatedTime && updates && c.updates) {
+                for (let j=0; j<updates.length; j++) {
+                    if (!c.updates.find((u) => u.contractor == updates[j].contractor && u.time == updates[j].time)) {
+                        c.updates.push(updates[j]);
                     }
 
                     count++;
